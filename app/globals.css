@@ -4,13 +4,34 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Brand Colors */
+  --coral: #FF7E5F;
+  --violet: #764BA2;
+  --soft-pink: #FEB47B;
+  --error-red: #EF4444;
+
+  /* Surface Colors */
+  --deep-dark: #0f0c29;
+  --surface: #1b1838;
+  --card-dark: #15132d;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-coral: var(--coral);
+  --color-violet: var(--violet);
+  --color-soft-pink: var(--soft-pink);
+  --color-primary: var(--coral);
+  --color-accent: var(--violet);
+  --color-bg-dark: var(--deep-dark);
+  --color-card-dark: var(--card-dark);
+  --color-surface: var(--surface);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-epilogue);
+  --font-body: var(--font-manrope);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,5 +44,141 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-display), var(--font-body), Arial, Helvetica, sans-serif;
+}
+
+/* ===== Gradient Utilities ===== */
+.gradient-coral-violet {
+  background: linear-gradient(135deg, var(--coral), var(--violet));
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--coral), var(--violet));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== Glass Pane Effect ===== */
+.glass-pane {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+.glass-dark {
+  background: rgba(15, 12, 41, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ===== Circular Progress ===== */
+.circular-progress {
+  background: conic-gradient(
+    var(--coral) 72%,
+    rgba(255, 255, 255, 0.1) 0deg
+  );
+}
+
+/* ===== Gradient Button ===== */
+.btn-gradient {
+  background: linear-gradient(90deg, var(--coral) 0%, var(--violet) 100%);
+  transition: all 0.3s ease;
+}
+
+.btn-gradient:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(118, 75, 162, 0.3);
+}
+
+.btn-gradient:active {
+  transform: translateY(0);
+}
+
+.btn-gradient:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+
+/* ===== Cyber Soft Underline Effect ===== */
+.cyber-soft {
+  position: relative;
+}
+
+.cyber-soft::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--coral), transparent);
+  opacity: 0.5;
+}
+
+/* ===== Custom Input Focus ===== */
+.input-glow:focus {
+  border-color: var(--coral);
+  box-shadow: 0 0 0 4px rgba(255, 126, 95, 0.1);
+}
+
+/* ===== Card Shadows ===== */
+.card-shadow {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+}
+
+.card-shadow-coral {
+  box-shadow: 0 10px 40px -10px rgba(255, 126, 95, 0.2);
+}
+
+/* ===== Scrollbar Styling ===== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--deep-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ===== Timeline Styles ===== */
+.timeline-line::before {
+  content: "";
+  position: absolute;
+  left: 1.25rem;
+  top: 2.5rem;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.timeline-item:last-child .timeline-line::before {
+  display: none;
+}
+
+/* ===== Task Card Hover Effect ===== */
+.task-card-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.task-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.2),
+    0 10px 10px -5px rgba(0, 0, 0, 0.1);
 }

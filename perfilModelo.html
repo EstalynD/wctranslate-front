@@ -1,0 +1,576 @@
+<!doctype html>
+<html class="dark" lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>WC TRAINING - Perfil de Usuario</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;600;700;900&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <style type="text/tailwindcss">
+      :root {
+        --coral: #ff7e5f;
+        --violet: #764ba2;
+        --deep-dark: #0f0c29;
+        --surface: #1b1838;
+      }
+      @layer base {
+        body {
+          @apply font-display bg-[var(--deep-dark)] text-white;
+        }
+      }
+      .gradient-coral-violet {
+        background: linear-gradient(135deg, var(--coral), var(--violet));
+      }
+      .text-gradient {
+        background: linear-gradient(135deg, var(--coral), var(--violet));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .material-symbols-outlined {
+        font-variation-settings:
+          "FILL" 0,
+          "wght" 400,
+          "GRAD" 0,
+          "opsz" 24;
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+    </style>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#FF7E5F",
+              accent: "#764BA2",
+              "bg-dark": "#0F0C29",
+              "card-dark": "#1B1838",
+            },
+            fontFamily: {
+              display: ["Epilogue", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "0.5rem",
+              lg: "0.75rem",
+              xl: "1rem",
+              "2xl": "1.5rem",
+              full: "9999px",
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="flex h-screen overflow-hidden">
+    <aside
+      class="w-64 flex-shrink-0 border-r border-white/5 bg-[var(--deep-dark)] flex flex-col justify-between py-8"
+    >
+      <div class="flex flex-col gap-10 px-6">
+        <div class="flex items-center gap-3">
+          <div
+            class="size-10 gradient-coral-violet rounded-xl flex items-center justify-center text-white shadow-lg shadow-coral/20"
+          >
+            <span class="material-symbols-outlined">auto_awesome</span>
+          </div>
+          <div class="flex flex-col">
+            <h1 class="text-xl font-black leading-none tracking-tight">
+              WC TRAINING
+            </h1>
+            <p
+              class="text-[var(--coral)] text-[10px] font-bold uppercase tracking-[0.2em]"
+            >
+              Model Edition
+            </p>
+          </div>
+        </div>
+        <nav class="flex flex-col gap-2">
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all group"
+            href="#"
+          >
+            <span
+              class="material-symbols-outlined group-hover:text-[var(--coral)]"
+              >dashboard</span
+            >
+            <span class="text-sm">Inicio</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all group"
+            href="#"
+          >
+            <span
+              class="material-symbols-outlined group-hover:text-[var(--coral)]"
+              >trending_up</span
+            >
+            <span class="text-sm">Mi Progreso</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all group"
+            href="#"
+          >
+            <span
+              class="material-symbols-outlined group-hover:text-[var(--coral)]"
+              >auto_stories</span
+            >
+            <span class="text-sm">Módulos</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 text-white font-semibold"
+            href="#"
+          >
+            <span class="material-symbols-outlined">person</span>
+            <span class="text-sm">Mi Perfil</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all group"
+            href="#"
+          >
+            <span
+              class="material-symbols-outlined group-hover:text-[var(--coral)]"
+              >forum</span
+            >
+            <span class="text-sm">Comunidad</span>
+          </a>
+        </nav>
+      </div>
+      <div class="px-6">
+        <div
+          class="p-4 rounded-2xl bg-gradient-to-br from-white/5 to-white/0 border border-white/10"
+        >
+          <p class="text-xs text-slate-400 mb-2">Soporte 24/7</p>
+          <button
+            class="w-full text-xs font-bold py-2 px-4 rounded-lg border border-[var(--coral)] text-[var(--coral)] hover:bg-[var(--coral)] hover:text-white transition-all"
+          >
+            Centro de Ayuda
+          </button>
+        </div>
+      </div>
+    </aside>
+    <main
+      class="flex-1 flex flex-col overflow-y-auto bg-[var(--deep-dark)] relative"
+    >
+      <div
+        class="h-64 w-full bg-gradient-to-r from-[var(--coral)] to-[var(--violet)] relative"
+      >
+        <div
+          class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"
+        ></div>
+        <div
+          class="absolute top-0 w-full p-6 flex justify-between items-center"
+        >
+          <div class="flex items-center gap-2 text-white/80">
+            <span class="material-symbols-outlined text-sm">home</span>
+            <span class="text-xs font-bold text-white/40">/</span>
+            <span class="text-xs font-bold uppercase tracking-widest"
+              >Perfil</span
+            >
+          </div>
+          <div class="flex gap-4">
+            <button
+              class="bg-white/10 hover:bg-white/20 p-2 rounded-full backdrop-blur-md transition-colors text-white"
+            >
+              <span class="material-symbols-outlined">notifications</span>
+            </button>
+            <button
+              class="bg-white/10 hover:bg-white/20 p-2 rounded-full backdrop-blur-md transition-colors text-white"
+            >
+              <span class="material-symbols-outlined">settings</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div
+        class="px-8 md:px-12 -mt-20 mb-8 flex flex-col md:flex-row items-end gap-8 relative z-10"
+      >
+        <div class="relative group">
+          <div
+            class="size-40 rounded-full border-[6px] border-[var(--deep-dark)] p-1 bg-[var(--deep-dark)] shadow-2xl"
+          >
+            <img
+              alt="Profile"
+              class="w-full h-full object-cover rounded-full"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkQQhat69Jhr3pWqXRhLGjXrsQZ7xDhlU_x9AdJPJlfLTvZqEjvPRRG8lIvmOH18uIIQWuXgl58Ve2IwbS3Vn8PLTG_wk39E8VHqel0YI_DiARClL1Rt6LSZCODlnm5xag1Gh-8SaoViYHzvecM_0n7cFxSv5cEkr2RGSSKfKgVnImhNFqFBcY1LA7OUhKlXj5t0fJ8eBCpMp1ORY4-0EY2e1WC_f_u6n2aw8afCjQ-blsxDKdNH0bnT5bemiCWlNRwNReYeSNgs8"
+            />
+          </div>
+          <button
+            class="absolute bottom-4 right-2 bg-[var(--surface)] text-white p-2.5 rounded-full border border-white/10 shadow-lg hover:bg-[var(--coral)] transition-colors"
+          >
+            <span class="material-symbols-outlined text-sm">photo_camera</span>
+          </button>
+        </div>
+        <div class="mb-4 flex-1">
+          <h1 class="text-4xl md:text-5xl font-black text-white tracking-tight">
+            Elena Vance
+          </h1>
+          <div class="flex items-center gap-3 mt-3">
+            <div
+              class="flex items-center gap-1 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-[var(--coral)] text-xs font-bold uppercase tracking-wider"
+            >
+              <span class="material-symbols-outlined text-sm">diamond</span>
+              Nivel Diamante
+            </div>
+            <span class="text-slate-400 text-sm">Miembro desde 2022</span>
+          </div>
+        </div>
+        <div class="mb-4 hidden md:block">
+          <button
+            class="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-sm font-bold"
+          >
+            <span class="material-symbols-outlined text-[var(--coral)]"
+              >share</span
+            >
+            Compartir Perfil
+          </button>
+        </div>
+      </div>
+      <div class="px-8 md:px-12 pb-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 space-y-8">
+          <div
+            class="bg-[var(--surface)] border border-white/5 p-8 rounded-[2rem] shadow-xl shadow-black/20"
+          >
+            <div
+              class="flex items-center justify-between mb-8 border-b border-white/5 pb-4"
+            >
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-[var(--coral)]"
+                  >person_edit</span
+                >
+                <h3 class="text-xl font-bold">Información Personal</h3>
+              </div>
+              <button
+                class="text-xs font-bold text-slate-400 hover:text-white uppercase transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+            <form class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                  <label
+                    class="text-xs font-bold text-slate-400 uppercase tracking-wide"
+                    >Nombre Completo</label
+                  >
+                  <input
+                    class="w-full bg-[var(--deep-dark)] border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[var(--coral)] focus:border-transparent outline-none transition-all placeholder-slate-600"
+                    type="text"
+                    value="Elena Vance"
+                  />
+                </div>
+                <div class="space-y-2">
+                  <label
+                    class="text-xs font-bold text-slate-400 uppercase tracking-wide"
+                    >Correo Electrónico</label
+                  >
+                  <input
+                    class="w-full bg-[var(--deep-dark)] border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[var(--coral)] focus:border-transparent outline-none transition-all placeholder-slate-600"
+                    type="email"
+                    value="elena.vance@wctraining.com"
+                  />
+                </div>
+              </div>
+              <div class="space-y-2">
+                <label
+                  class="text-xs font-bold text-slate-400 uppercase tracking-wide"
+                  >Afiliación de Estudio</label
+                >
+                <div class="relative">
+                  <span
+                    class="absolute left-4 top-3.5 material-symbols-outlined text-slate-500"
+                    >apartment</span
+                  >
+                  <input
+                    class="w-full bg-[var(--deep-dark)] border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:ring-2 focus:ring-[var(--coral)] focus:border-transparent outline-none transition-all"
+                    type="text"
+                    value="Vixen Studio International"
+                  />
+                </div>
+              </div>
+              <div class="space-y-2">
+                <label
+                  class="text-xs font-bold text-slate-400 uppercase tracking-wide"
+                  >Bio Pública</label
+                >
+                <textarea
+                  class="w-full bg-[var(--deep-dark)] border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[var(--coral)] focus:border-transparent outline-none transition-all resize-none text-sm text-slate-300"
+                  rows="3"
+                >
+Modelo profesional con 3 años de experiencia. Apasionada por el aprendizaje continuo y la interacción auténtica.</textarea
+                >
+              </div>
+              <div class="pt-4 flex justify-end">
+                <button
+                  class="gradient-coral-violet text-white font-bold py-3 px-8 rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-coral/20"
+                  type="button"
+                >
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
+          </div>
+          <div
+            class="bg-[var(--surface)] border border-white/5 p-8 rounded-[2rem] shadow-xl shadow-black/20"
+          >
+            <div
+              class="flex items-center gap-3 mb-8 border-b border-white/5 pb-4"
+            >
+              <span class="material-symbols-outlined text-[var(--violet)]"
+                >manage_accounts</span
+              >
+              <h3 class="text-xl font-bold">Configuración de Cuenta</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div class="space-y-4">
+                <h4 class="text-sm font-bold text-white mb-4">Seguridad</h4>
+                <div class="space-y-2">
+                  <label class="text-[10px] font-bold text-slate-400 uppercase"
+                    >Contraseña Actual</label
+                  >
+                  <input
+                    class="w-full bg-[var(--deep-dark)] border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-[var(--coral)] outline-none"
+                    type="password"
+                    value="********"
+                  />
+                </div>
+                <div class="space-y-2">
+                  <label class="text-[10px] font-bold text-slate-400 uppercase"
+                    >Nueva Contraseña</label
+                  >
+                  <input
+                    class="w-full bg-[var(--deep-dark)] border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:border-[var(--coral)] outline-none"
+                    placeholder="Mínimo 8 caracteres"
+                    type="password"
+                  />
+                </div>
+                <button
+                  class="text-[var(--coral)] text-xs font-bold mt-2 hover:underline"
+                >
+                  Actualizar Contraseña
+                </button>
+              </div>
+              <div class="space-y-6">
+                <h4 class="text-sm font-bold text-white mb-4">
+                  Preferencias de Notificación
+                </h4>
+                <div class="flex items-center justify-between group">
+                  <div>
+                    <p class="text-sm font-semibold">Alertas por Email</p>
+                    <p class="text-xs text-slate-500">
+                      Recibe resúmenes semanales
+                    </p>
+                  </div>
+                  <label
+                    class="relative inline-flex items-center cursor-pointer"
+                  >
+                    <input checked="" class="sr-only peer" type="checkbox" />
+                    <div
+                      class="w-11 h-6 bg-[var(--deep-dark)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--coral)]"
+                    ></div>
+                  </label>
+                </div>
+                <div class="flex items-center justify-between group">
+                  <div>
+                    <p class="text-sm font-semibold">Notificaciones Push</p>
+                    <p class="text-xs text-slate-500">
+                      Avisos instantáneos de tareas
+                    </p>
+                  </div>
+                  <label
+                    class="relative inline-flex items-center cursor-pointer"
+                  >
+                    <input checked="" class="sr-only peer" type="checkbox" />
+                    <div
+                      class="w-11 h-6 bg-[var(--deep-dark)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--coral)]"
+                    ></div>
+                  </label>
+                </div>
+                <div class="flex items-center justify-between group">
+                  <div>
+                    <p class="text-sm font-semibold">Mensajes de Comunidad</p>
+                    <p class="text-xs text-slate-500">
+                      Cuando alguien responde a tu post
+                    </p>
+                  </div>
+                  <label
+                    class="relative inline-flex items-center cursor-pointer"
+                  >
+                    <input class="sr-only peer" type="checkbox" />
+                    <div
+                      class="w-11 h-6 bg-[var(--deep-dark)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--coral)]"
+                    ></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-8">
+          <div
+            class="bg-[var(--surface)] border border-white/5 p-8 rounded-[2rem] shadow-xl shadow-black/20 relative overflow-hidden"
+          >
+            <div
+              class="absolute top-0 right-0 p-8 opacity-5 pointer-events-none"
+            >
+              <span class="material-symbols-outlined text-9xl">analytics</span>
+            </div>
+            <h3 class="text-xl font-bold mb-6">Estadísticas de Aprendizaje</h3>
+            <div class="space-y-6 relative z-10">
+              <div class="bg-white/5 rounded-2xl p-4 flex items-center gap-4">
+                <div
+                  class="size-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center"
+                >
+                  <span class="material-symbols-outlined">timer</span>
+                </div>
+                <div>
+                  <p class="text-2xl font-black">124h</p>
+                  <p class="text-xs font-bold text-slate-400 uppercase">
+                    Tiempo Entrenado
+                  </p>
+                </div>
+              </div>
+              <div class="bg-white/5 rounded-2xl p-4 flex items-center gap-4">
+                <div
+                  class="size-12 rounded-xl bg-[var(--coral)]/20 text-[var(--coral)] flex items-center justify-center"
+                >
+                  <span class="material-symbols-outlined">library_books</span>
+                </div>
+                <div>
+                  <p class="text-2xl font-black">18</p>
+                  <p class="text-xs font-bold text-slate-400 uppercase">
+                    Módulos Completados
+                  </p>
+                </div>
+              </div>
+              <div class="bg-white/5 rounded-2xl p-4 flex items-center gap-4">
+                <div
+                  class="size-12 rounded-xl bg-[var(--violet)]/20 text-[var(--violet)] flex items-center justify-center"
+                >
+                  <span class="material-symbols-outlined"
+                    >assignment_turned_in</span
+                  >
+                </div>
+                <div>
+                  <p class="text-2xl font-black">42</p>
+                  <p class="text-xs font-bold text-slate-400 uppercase">
+                    Tareas Enviadas
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="bg-[var(--surface)] border border-white/5 p-8 rounded-[2rem] shadow-xl shadow-black/20"
+          >
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-xl font-bold">Logros</h3>
+              <div class="text-xs font-bold text-slate-400">12/30</div>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div
+                class="aspect-square bg-gradient-to-br from-white/10 to-white/5 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5 hover:border-[var(--coral)] transition-colors cursor-pointer group"
+              >
+                <span
+                  class="material-symbols-outlined text-[var(--coral)] group-hover:scale-110 transition-transform"
+                  >emoji_events</span
+                >
+                <span class="text-[8px] font-bold uppercase text-slate-400"
+                  >Top</span
+                >
+              </div>
+              <div
+                class="aspect-square bg-gradient-to-br from-white/10 to-white/5 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5 hover:border-violet-400 transition-colors cursor-pointer group"
+              >
+                <span
+                  class="material-symbols-outlined text-violet-400 group-hover:scale-110 transition-transform"
+                  >rocket_launch</span
+                >
+                <span class="text-[8px] font-bold uppercase text-slate-400"
+                  >Inicio</span
+                >
+              </div>
+              <div
+                class="aspect-square bg-gradient-to-br from-white/10 to-white/5 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5 hover:border-emerald-400 transition-colors cursor-pointer group"
+              >
+                <span
+                  class="material-symbols-outlined text-emerald-400 group-hover:scale-110 transition-transform"
+                  >payments</span
+                >
+                <span class="text-[8px] font-bold uppercase text-slate-400"
+                  >Ventas</span
+                >
+              </div>
+              <div
+                class="aspect-square bg-gradient-to-br from-white/10 to-white/5 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5 hover:border-amber-400 transition-colors cursor-pointer group"
+              >
+                <span
+                  class="material-symbols-outlined text-amber-400 group-hover:scale-110 transition-transform"
+                  >star</span
+                >
+                <span class="text-[8px] font-bold uppercase text-slate-400"
+                  >5 Stars</span
+                >
+              </div>
+              <div
+                class="aspect-square bg-gradient-to-br from-white/10 to-white/5 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5 hover:border-pink-400 transition-colors cursor-pointer group"
+              >
+                <span
+                  class="material-symbols-outlined text-pink-400 group-hover:scale-110 transition-transform"
+                  >favorite</span
+                >
+                <span class="text-[8px] font-bold uppercase text-slate-400"
+                  >Fan</span
+                >
+              </div>
+              <div
+                class="aspect-square bg-white/5 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5 opacity-40 grayscale"
+              >
+                <span class="material-symbols-outlined text-slate-400"
+                  >lock</span
+                >
+              </div>
+              <div
+                class="aspect-square bg-white/5 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5 opacity-40 grayscale"
+              >
+                <span class="material-symbols-outlined text-slate-400"
+                  >lock</span
+                >
+              </div>
+              <div
+                class="aspect-square bg-white/5 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5 opacity-40 grayscale"
+              >
+                <span class="material-symbols-outlined text-slate-400"
+                  >lock</span
+                >
+              </div>
+              <div
+                class="aspect-square bg-white/5 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5 opacity-40 grayscale"
+              >
+                <span class="material-symbols-outlined text-slate-400"
+                  >lock</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
