@@ -16,13 +16,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const closeMobileSidebar = () => setIsMobileOpen(false)
   const openMobileSidebar = () => setIsMobileOpen(true)
 
-  // TODO: Fetch user data from API/Auth context
-  const user = {
-    name: "Elena Vance",
-    level: "Nivel Diamante",
-    avatar: "https://i.pravatar.cc/100",
-  }
-
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--deep-dark)] text-white">
       {/* Mobile Sidebar Overlay */}
@@ -53,10 +46,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-y-auto">
-        <Header onOpenMobile={openMobileSidebar} user={user} />
+        <Header onOpenMobile={openMobileSidebar} />
 
         {/* Page Content */}
-        <div className="p-6 md:p-10 space-y-10">
+        <div className="p-2 sm:p-4 md:p-10 space-y-6 md:space-y-10">
           {children}
         </div>
       </main>

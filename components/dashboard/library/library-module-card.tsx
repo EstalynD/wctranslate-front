@@ -2,58 +2,65 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { Play, ArrowRight, Brain } from "lucide-react"
+import { Play, ArrowRight, Brain, Clock, BookOpen, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { Course } from "@/lib/types/course.types"
+import {
+  CourseCategory,
+  CourseLevel,
+  categoryLabels,
+  levelLabels,
+} from "@/lib/types/course.types"
 
-/* ===== Types ===== */
-export type ModuleCategory = "Marketing" | "Técnico" | "Psicología" | "Legal" | "Styling"
-export type ModuleLevel = "Básico" | "Intermedio" | "Avanzado"
-
-export interface LibraryModule {
-  id: string
-  title: string
-  description: string
-  category: ModuleCategory
-  level: ModuleLevel
-  progress: number
-  image?: string
-  icon?: React.ReactNode
-}
-
+/* ===== Props ===== */
 interface LibraryModuleCardProps {
-  module: LibraryModule
+  course: Course
+  /** Progreso del usuario 0-100 (se obtendrá de la API de progreso) */
+  progress?: number
   className?: string
 }
 
 /* ===== Category Color Mapping ===== */
-const categoryColors: Record<ModuleCategory, string> = {
-  Técnico: "text-primary",
-  Marketing: "text-violet-400",
-  Psicología: "text-emerald-400",
-  Legal: "text-amber-400",
-  Styling: "text-pink-400",
+const categoryColors: Record<CourseCategory, string> = {
+  [CourseCategory.TECHNICAL]: "text-primary",
+  [CourseCategory.MARKETING]: "text-violet-400",
+  [CourseCategory.PSYCHOLOGY]: "text-emerald-400",
+  [CourseCategory.LEGAL]: "text-amber-400",
+  [CourseCategory.STYLING]: "text-pink-400",
+  [CourseCategory.COMMUNICATION]: "text-sky-400",
+  [CourseCategory.GENERAL]: "text-slate-300",
 }
 
 /* ===== Level Styles ===== */
-const levelStyles: Record<ModuleLevel, string> = {
-  Básico: "bg-white/10 backdrop-blur-md text-white",
-  Intermedio: "bg-white/10 backdrop-blur-md text-white",
-  Avanzado: "bg-primary text-white",
+const levelStyles: Record<CourseLevel, string> = {
+  [CourseLevel.BASIC]: "bg-white/10 backdrop-blur-md text-white",
+  [CourseLevel.INTERMEDIATE]: "bg-white/10 backdrop-blur-md text-white",
+  [CourseLevel.ADVANCED]: "bg-primary text-white",
 }
 
-/* ===== Gradient Backgrounds for modules without images ===== */
-const categoryGradients: Record<ModuleCategory, string> = {
-  Técnico: "from-rose-900 to-orange-950",
-  Marketing: "from-violet-900 to-purple-950",
-  Psicología: "from-indigo-900 to-violet-950",
-  Legal: "from-amber-900 to-yellow-950",
-  Styling: "from-pink-900 to-rose-950",
+/* ===== Gradient Backgrounds para cursos sin thumbnail ===== */
+const categoryGradients: Record<CourseCategory, string> = {
+  [CourseCategory.TECHNICAL]: "from-rose-900 to-orange-950",
+  [CourseCategory.MARKETING]: "from-violet-900 to-purple-950",
+  [CourseCategory.PSYCHOLOGY]: "from-indigo-900 to-violet-950",
+  [CourseCategory.LEGAL]: "from-amber-900 to-yellow-950",
+  [CourseCategory.STYLING]: "from-pink-900 to-rose-950",
+  [CourseCategory.COMMUNICATION]: "from-sky-900 to-cyan-950",
+  [CourseCategory.GENERAL]: "from-slate-800 to-slate-950",
+}
+
+/* ===== Helpers ===== */
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
 }
 
 /* ===== Library Module Card Component ===== */
-export function LibraryModuleCard({ module, className }: LibraryModuleCardProps) {
-  const hasProgress = module.progress > 0
-  const isCompleted = module.progress === 100
+export function LibraryModuleCard({ course, progress = 0, className }: LibraryModuleCardProps) {
+  const hasProgress = progress > 0
+  const isCompleted = progress === 100
 
   return (
     <div
@@ -62,88 +69,119 @@ export function LibraryModuleCard({ module, className }: LibraryModuleCardProps)
         className
       )}
     >
-      {/* Image Section */}
+      {/* Imagen */}
       <div className="relative h-52 overflow-hidden">
-        {module.image ? (
+        {course.thumbnail ? (
           <Image
-            src={module.image}
-            alt={module.title}
+            src={course.thumbnail}
+            alt={course.title}
             fill
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         ) : (
           <>
-            <div className={cn("absolute inset-0 bg-gradient-to-br", categoryGradients[module.category])} />
+            <div className={cn("absolute inset-0 bg-gradient-to-br", categoryGradients[course.category])} />
             <div className="absolute inset-0 flex items-center justify-center">
-              {module.icon || <Brain className="size-16 text-white/20" />}
+              <Brain className="size-16 text-white/20" />
             </div>
           </>
         )}
 
-        {/* Gradient Overlay */}
+        {/* Gradiente overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--surface)] via-transparent to-transparent" />
 
-        {/* Category Badge */}
+        {/* Badge categoría */}
         <div className="absolute top-4 left-4">
           <span
             className={cn(
               "px-3 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wider",
-              categoryColors[module.category]
+              categoryColors[course.category]
             )}
           >
-            {module.category}
+            {categoryLabels[course.category]}
           </span>
         </div>
 
-        {/* Level Badge */}
+        {/* Badge completado */}
+        {isCompleted && (
+          <div className="absolute top-4 right-4">
+            <span className="px-3 py-1 bg-emerald-500/80 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wider text-white">
+              Completado
+            </span>
+          </div>
+        )}
+
+        {/* Badge nivel */}
         <div className="absolute bottom-4 right-4">
           <span
             className={cn(
               "px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider",
-              levelStyles[module.level]
+              levelStyles[course.level]
             )}
           >
-            {module.level}
+            {levelLabels[course.level]}
           </span>
         </div>
       </div>
 
-      {/* Content Section */}
+      {/* Contenido */}
       <div className="p-6 flex-1 flex flex-col">
-        <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
-          {module.title}
+        <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-2">
+          {course.title}
         </h3>
-        <p className="text-slate-400 text-sm mb-6 line-clamp-2">
-          {module.description}
+        <p className="text-slate-400 text-sm mb-4 line-clamp-2">
+          {course.description}
         </p>
 
-        {/* Progress & Action */}
+        {/* Metadatos */}
+        <div className="flex items-center gap-4 mb-6 text-xs text-slate-500">
+          <span className="flex items-center gap-1.5">
+            <BookOpen className="size-3.5" />
+            {course.totalLessons} lecciones
+          </span>
+          {course.totalDurationMinutes > 0 && (
+            <span className="flex items-center gap-1.5">
+              <Clock className="size-3.5" />
+              {formatDuration(course.totalDurationMinutes)}
+            </span>
+          )}
+          {course.enrolledCount > 0 && (
+            <span className="flex items-center gap-1.5">
+              <Users className="size-3.5" />
+              {course.enrolledCount}
+            </span>
+          )}
+        </div>
+
+        {/* Progreso y Acción */}
         <div className="mt-auto space-y-4">
-          {/* Progress Bar */}
+          {/* Barra de progreso */}
           <div className="space-y-2">
             <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
               <span className="text-slate-500">Progreso</span>
               <span className={hasProgress ? "text-primary" : "text-slate-600"}>
-                {module.progress}%
+                {progress}%
               </span>
             </div>
             <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
               <div
                 className={cn(
                   "h-full rounded-full transition-all duration-500",
-                  hasProgress
-                    ? "gradient-coral-violet shadow-[0_0_10px_rgba(255,126,95,0.4)]"
-                    : "bg-white/10"
+                  isCompleted
+                    ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]"
+                    : hasProgress
+                      ? "gradient-coral-violet shadow-[0_0_10px_rgba(255,126,95,0.4)]"
+                      : "bg-white/10"
                 )}
-                style={{ width: `${module.progress}%` }}
+                style={{ width: `${progress}%` }}
               />
             </div>
           </div>
 
-          {/* Action Button */}
+          {/* Botón de acción */}
           <Link
-            href={`/dashboard/library/${module.id}`}
+            href={`/dashboard/library/${course.slug}`}
             className={cn(
               "w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all",
               hasProgress
@@ -151,7 +189,7 @@ export function LibraryModuleCard({ module, className }: LibraryModuleCardProps)
                 : "bg-white/10 hover:bg-white/20 border border-white/10 text-white"
             )}
           >
-            <span>{hasProgress ? "Continuar" : "Comenzar"}</span>
+            <span>{isCompleted ? "Repasar" : hasProgress ? "Continuar" : "Comenzar"}</span>
             {hasProgress ? (
               <Play className="size-4 fill-current" />
             ) : (

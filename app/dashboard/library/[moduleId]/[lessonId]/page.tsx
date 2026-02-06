@@ -1,289 +1,244 @@
-import { notFound } from "next/navigation"
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import { AlertCircle, RefreshCw } from "lucide-react"
 import {
   Breadcrumb,
   LessonDetailHeader,
   TaskList,
   LessonNavigation,
   type Task,
+  type TaskStatus,
+  type LessonTaskType as UITaskType,
 } from "@/components/dashboard/lesson-detail"
+import {
+  coursesService,
+  themesService,
+  progressService,
+  ApiError,
+} from "@/lib/api"
+import type { CourseWithThemes } from "@/lib/api/courses.service"
+import type { ThemeWithLessons } from "@/lib/api/themes.service"
+import type {
+  Theme,
+  BackendLesson,
+  ThemeProgressData,
+  CourseProgressData,
+  LessonAccessResponse,
+} from "@/lib/types/course.types"
+import {
+  LessonType,
+  ProgressStatus,
+} from "@/lib/types/course.types"
 
 /* ===== Types ===== */
-interface LessonDetail {
-  id: string
-  title: string
-  highlightedText: string
-  description: string
-  progress: number
-  tasks: Task[]
+interface LessonPageState {
+  course: CourseWithThemes | null
+  theme: ThemeWithLessons | null
+  allThemes: ThemeWithLessons[]
+  courseProgress: CourseProgressData | null
+  lessonAccessMap: Record<string, LessonAccessResponse>
+  isLoading: boolean
+  error: string | null
 }
 
-interface ModuleData {
-  id: string
-  title: string
-  shortTitle: string
-  totalLessons: number
-  completedLessons: number
-  lessons: LessonDetail[]
+/* ===== Mapeos de tipo ===== */
+const lessonTypeToUIType: Record<LessonType, UITaskType> = {
+  [LessonType.VIDEO]: "video",
+  [LessonType.EXERCISE]: "exercise",
+  [LessonType.QUIZ]: "quiz",
+  [LessonType.READING]: "reading",
+  [LessonType.DOWNLOAD]: "exercise",
 }
 
-/* ===== Mock Data (TODO: Replace with API) ===== */
-const modulesData: Record<string, ModuleData> = {
-  "psicologia-fan": {
-    id: "psicologia-fan",
-    title: "Módulo 2",
-    shortTitle: "Psicología",
-    totalLessons: 4,
-    completedLessons: 2,
-    lessons: [
-      {
-        id: "lesson-1",
-        title: "Introducción al Engagement Emocional",
-        highlightedText: "Engagement Emocional",
-        description: "Aprende los fundamentos de la conexión emocional con tu audiencia y cómo mantener su atención.",
-        progress: 100,
-        tasks: [
-          {
-            id: "task-1",
-            type: "video",
-            title: "Fundamentos del Engagement",
-            description: "Descubre los principios básicos para conectar emocionalmente con tu audiencia desde el primer momento.",
-            duration: "15 min",
-            status: "completed",
-            videoDuration: "12:30",
-          },
-          {
-            id: "task-2",
-            type: "exercise",
-            title: "Práctica: Tu Primera Conexión",
-            description: "Realiza un ejercicio guiado para practicar técnicas de conexión emocional.",
-            duration: "10 min",
-            status: "completed",
-          },
-        ],
-      },
-      {
-        id: "lesson-2",
-        title: "Manejo de Trolls y Haters",
-        highlightedText: "Trolls y Haters",
-        description: "Aprende estrategias avanzadas para mantener el control de tu sala y proteger tu bienestar emocional frente a usuarios conflictivos.",
-        progress: 33,
-        tasks: [
-          {
-            id: "task-1",
-            type: "video",
-            title: "Identificando Perfiles Tóxicos",
-            description: "Analizaremos los 5 tipos más comunes de trolls y cómo diferenciar un hater pasajero de un acosador sistemático.",
-            duration: "15 min",
-            status: "completed",
-            thumbnail: "/toxic.png",
-            videoDuration: "12:45",
-          },
-          {
-            id: "task-2",
-            type: "exercise",
-            title: "Escenario de Chat: \"El Arte del Ban Elegante\"",
-            description: "Simula una respuesta a tres situaciones críticas en el chat para practicar la desescalada y el cierre de conversación sin perder propinas.",
-            duration: "20 min",
-            status: "pending",
-          },
-          {
-            id: "task-3",
-            type: "quiz",
-            title: "Evaluación: Psicología del Troll",
-            description: "Responde 10 preguntas para validar tus conocimientos. Desbloquea este quiz completando las tareas anteriores.",
-            duration: "10 min",
-            status: "locked",
-          },
-        ],
-      },
-      {
-        id: "lesson-3",
-        title: "Micro-expresiones y Venta Sugestiva",
-        highlightedText: "Venta Sugestiva",
-        description: "Domina el arte de las micro-expresiones faciales y aprende técnicas de venta sugestiva para incrementar tus ingresos.",
-        progress: 0,
-        tasks: [
-          {
-            id: "task-1",
-            type: "video",
-            title: "El Poder de las Micro-expresiones",
-            description: "Aprende a leer y utilizar las micro-expresiones para conectar mejor con tu audiencia.",
-            duration: "20 min",
-            status: "locked",
-            videoDuration: "18:20",
-          },
-          {
-            id: "task-2",
-            type: "exercise",
-            title: "Práctica: Espejo Emocional",
-            description: "Ejercicio práctico frente al espejo para dominar tus expresiones faciales.",
-            duration: "15 min",
-            status: "locked",
-          },
-        ],
-      },
-      {
-        id: "lesson-4",
-        title: "Retención de Usuarios VIP",
-        highlightedText: "Usuarios VIP",
-        description: "Estrategias exclusivas para identificar, cultivar y retener a tus usuarios más valiosos.",
-        progress: 0,
-        tasks: [
-          {
-            id: "task-1",
-            type: "video",
-            title: "Identificando a tus VIPs",
-            description: "Aprende a reconocer los patrones de comportamiento de usuarios de alto valor.",
-            duration: "15 min",
-            status: "locked",
-            videoDuration: "14:00",
-          },
-          {
-            id: "task-2",
-            type: "exercise",
-            title: "Plan de Retención Personalizado",
-            description: "Crea tu propio plan de retención para usuarios VIP.",
-            duration: "25 min",
-            status: "locked",
-          },
-          {
-            id: "task-3",
-            type: "quiz",
-            title: "Quiz Final: Retención Avanzada",
-            description: "Evalúa tus conocimientos sobre estrategias de retención.",
-            duration: "10 min",
-            status: "locked",
-          },
-        ],
-      },
-    ],
-  },
-  "mastering-lighting": {
-    id: "mastering-lighting",
-    title: "Módulo 1",
-    shortTitle: "Iluminación",
-    totalLessons: 4,
-    completedLessons: 2,
-    lessons: [
-      {
-        id: "lesson-1",
-        title: "Fundamentos de Iluminación",
-        highlightedText: "Iluminación",
-        description: "Aprende los conceptos básicos de iluminación profesional para tus transmisiones.",
-        progress: 100,
-        tasks: [
-          {
-            id: "task-1",
-            type: "video",
-            title: "Tipos de Luz y Sus Efectos",
-            description: "Descubre los diferentes tipos de iluminación y cómo afectan tu imagen en cámara.",
-            duration: "20 min",
-            status: "completed",
-            videoDuration: "18:30",
-          },
-        ],
-      },
-      {
-        id: "lesson-2",
-        title: "Setup de Iluminación Profesional",
-        highlightedText: "Profesional",
-        description: "Configura tu setup de iluminación como un profesional con equipos accesibles.",
-        progress: 100,
-        tasks: [
-          {
-            id: "task-1",
-            type: "video",
-            title: "Configuración de 3 Puntos",
-            description: "Tutorial completo sobre la técnica clásica de iluminación de 3 puntos.",
-            duration: "25 min",
-            status: "completed",
-            videoDuration: "22:15",
-          },
-          {
-            id: "task-2",
-            type: "exercise",
-            title: "Práctica: Tu Primer Setup",
-            description: "Configura tu propio setup siguiendo las instrucciones del tutorial.",
-            duration: "30 min",
-            status: "completed",
-          },
-        ],
-      },
-      {
-        id: "lesson-3",
-        title: "Iluminación para Diferentes Horarios",
-        highlightedText: "Diferentes Horarios",
-        description: "Adapta tu iluminación según la hora del día para maximizar el engagement.",
-        progress: 50,
-        tasks: [
-          {
-            id: "task-1",
-            type: "video",
-            title: "Horas Doradas y Nocturnas",
-            description: "Aprende a aprovechar la luz natural y combinarla con artificial.",
-            duration: "18 min",
-            status: "completed",
-            videoDuration: "16:45",
-          },
-          {
-            id: "task-2",
-            type: "exercise",
-            title: "Práctica: Configuraciones de Emergencia",
-            description: "Aprende soluciones rápidas para problemas comunes de iluminación.",
-            duration: "15 min",
-            status: "pending",
-          },
-        ],
-      },
-      {
-        id: "lesson-4",
-        title: "Efectos Creativos con Luz",
-        highlightedText: "Creativos",
-        description: "Lleva tu iluminación al siguiente nivel con efectos creativos y atmosféricos.",
-        progress: 0,
-        tasks: [
-          {
-            id: "task-1",
-            type: "video",
-            title: "Efectos de Color y Ambiente",
-            description: "Crea ambientes únicos usando luces de colores y efectos especiales.",
-            duration: "20 min",
-            status: "locked",
-            videoDuration: "18:00",
-          },
-          {
-            id: "task-2",
-            type: "quiz",
-            title: "Quiz Final: Maestro de la Luz",
-            description: "Demuestra tus conocimientos sobre iluminación profesional.",
-            duration: "10 min",
-            status: "locked",
-          },
-        ],
-      },
-    ],
-  },
-}
+/* ===== Helpers ===== */
 
-/* ===== Helper Functions ===== */
-function findLessonData(moduleId: string, lessonId: string) {
-  const moduleData = modulesData[moduleId]
-  if (!moduleData) return null
-
-  const lessonIndex = moduleData.lessons.findIndex((l) => l.id === lessonId)
-  if (lessonIndex === -1) return null
-
-  const lesson = moduleData.lessons[lessonIndex]
-  const previousLesson = lessonIndex > 0 ? moduleData.lessons[lessonIndex - 1] : null
-  const nextLesson = lessonIndex < moduleData.lessons.length - 1 ? moduleData.lessons[lessonIndex + 1] : null
-
-  return {
-    module: moduleData,
-    lesson,
-    lessonNumber: lessonIndex + 1,
-    previousLesson: previousLesson ? { id: previousLesson.id, title: previousLesson.title.replace(previousLesson.highlightedText, "").trim() || previousLesson.highlightedText } : undefined,
-    nextLesson: nextLesson ? { id: nextLesson.id, title: nextLesson.highlightedText } : undefined,
+/** Determina el estado UI de una tarea (lesson del backend) */
+function getLessonTaskStatus(
+  lesson: BackendLesson,
+  lessonIndex: number,
+  lessons: BackendLesson[],
+  themeProgress: ThemeProgressData | null,
+  lessonAccessMap: Record<string, LessonAccessResponse>
+): TaskStatus {
+  const access = lessonAccessMap[lesson._id]
+  if (access && !access.canAccess) {
+    return "locked"
   }
+
+  if (!themeProgress) {
+    return lessonIndex === 0 ? "pending" : "locked"
+  }
+
+  const lessonProg = (themeProgress.lessonsProgress ?? []).find(
+    (lp) => lp.lessonId === lesson._id
+  )
+
+  if (lessonProg?.status === ProgressStatus.COMPLETED) return "completed"
+  if (lessonProg?.status === ProgressStatus.IN_PROGRESS) return "in-progress"
+
+  // Verificar si está bloqueada
+  if (lesson.requiresPreviousCompletion && lessonIndex > 0) {
+    const prevLesson = lessons[lessonIndex - 1]
+    const prevProg = (themeProgress.lessonsProgress ?? []).find(
+      (lp) => lp.lessonId === prevLesson._id
+    )
+    if (prevProg?.status !== ProgressStatus.COMPLETED) return "locked"
+  }
+
+  // Si es preview, siempre accesible
+  if (lesson.isPreview) return "pending"
+
+  // Si es la primera o no requiere anterior, está pendiente
+  if (lessonIndex === 0 || !lesson.requiresPreviousCompletion) return "pending"
+
+  return "pending"
+}
+
+/** Transforma lecciones del backend a tareas del UI */
+function transformLessonsToTasks(
+  lessons: BackendLesson[],
+  themeProgress: ThemeProgressData | null,
+  moduleSlug: string,
+  themeId: string,
+  lessonAccessMap: Record<string, LessonAccessResponse>
+): Task[] {
+  return lessons.map((lesson, index) => {
+    const status = getLessonTaskStatus(
+      lesson,
+      index,
+      lessons,
+      themeProgress,
+      lessonAccessMap
+    )
+
+    // Buscar thumbnail en content blocks de tipo VIDEO o IMAGE
+    const videoBlock = lesson.contentBlocks?.find(
+      (b) => b.type === "VIDEO" && b.mediaUrl
+    )
+    const imageBlock = lesson.contentBlocks?.find(
+      (b) => b.type === "IMAGE" && b.mediaUrl
+    )
+    const thumbnail = imageBlock?.mediaUrl || undefined
+
+    // Calcular duración del video si es tipo VIDEO
+    const videoDuration = videoBlock?.settings
+      ? (videoBlock.settings as Record<string, unknown>).duration as string | undefined
+      : undefined
+
+    // Formato de duración
+    const duration = lesson.durationMinutes
+      ? lesson.durationMinutes >= 60
+        ? `${Math.floor(lesson.durationMinutes / 60)}h ${lesson.durationMinutes % 60} min`
+        : `${lesson.durationMinutes} min`
+      : "—"
+
+    return {
+      id: lesson._id,
+      type: lessonTypeToUIType[lesson.type] || "video",
+      title: lesson.title,
+      description: lesson.description || "",
+      duration,
+      status,
+      thumbnail,
+      videoDuration,
+      href: `/dashboard/library/${moduleSlug}/${themeId}/${lesson._id}`,
+    }
+  })
+}
+
+/* ===== Loading Skeleton ===== */
+function LessonDetailSkeleton() {
+  return (
+    <div className="max-w-6xl mx-auto w-full animate-pulse">
+      {/* Breadcrumb */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-16 bg-white/5 rounded" />
+          <div className="h-3 w-2 bg-white/5 rounded" />
+          <div className="h-4 w-24 bg-white/5 rounded" />
+          <div className="h-3 w-2 bg-white/5 rounded" />
+          <div className="h-4 w-32 bg-white/5 rounded" />
+        </div>
+      </div>
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+        <div className="flex-1">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="h-6 w-28 bg-white/5 rounded-full" />
+            <div className="h-4 w-36 bg-white/5 rounded" />
+          </div>
+          <div className="h-12 w-96 bg-white/5 rounded-xl mb-4" />
+          <div className="h-5 w-full max-w-2xl bg-white/5 rounded-lg" />
+        </div>
+        <div className="bg-[var(--surface)] border border-white/10 rounded-2xl p-6 min-w-[240px]">
+          <div className="flex justify-between mb-2">
+            <div className="h-4 w-24 bg-white/5 rounded" />
+            <div className="h-4 w-10 bg-white/5 rounded" />
+          </div>
+          <div className="h-2 w-full bg-white/5 rounded-full" />
+        </div>
+      </div>
+
+      {/* Task cards */}
+      <div className="grid gap-6">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="bg-[var(--surface)] border border-white/5 rounded-3xl p-8"
+          >
+            <div className="flex flex-col md:flex-row gap-8 items-center">
+              {i === 1 && (
+                <div className="w-full md:w-64 aspect-video rounded-2xl bg-white/5 flex-shrink-0" />
+              )}
+              {i !== 1 && (
+                <div className="size-20 rounded-2xl bg-white/5 flex-shrink-0" />
+              )}
+              <div className="flex-1 w-full">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-5 w-24 bg-white/5 rounded" />
+                  <div className="h-4 w-28 bg-white/5 rounded" />
+                </div>
+                <div className="h-7 w-72 bg-white/5 rounded-lg mb-3" />
+                <div className="h-4 w-full bg-white/5 rounded mb-6" />
+                <div className="h-10 w-36 bg-white/5 rounded-xl" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ===== Error State ===== */
+function LessonDetailError({
+  error,
+  onRetry,
+}: {
+  error: string
+  onRetry: () => void
+}) {
+  return (
+    <div className="max-w-6xl mx-auto w-full">
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="size-20 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+          <AlertCircle className="size-10 text-red-400" />
+        </div>
+        <h3 className="text-xl font-bold mb-2">Error al cargar el tema</h3>
+        <p className="text-slate-400 max-w-md mb-6">{error}</p>
+        <button
+          onClick={onRetry}
+          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-sm font-bold transition-all"
+        >
+          <RefreshCw className="size-4" />
+          Reintentar
+        </button>
+      </div>
+    </div>
+  )
 }
 
 /* ===== Page Props ===== */
@@ -292,22 +247,194 @@ interface LessonDetailPageProps {
 }
 
 /* ===== Page Component ===== */
-export default async function LessonDetailPage({ params }: LessonDetailPageProps) {
-  const { moduleId, lessonId } = await params
-  const data = findLessonData(moduleId, lessonId)
+export default function LessonDetailPage({ params }: LessonDetailPageProps) {
+  const router = useRouter()
 
-  if (!data) {
-    notFound()
-  }
+  const [state, setState] = useState<LessonPageState>({
+    course: null,
+    theme: null,
+    allThemes: [],
+    courseProgress: null,
+    lessonAccessMap: {},
+    isLoading: true,
+    error: null,
+  })
 
-  const { module: moduleData, lesson, lessonNumber, previousLesson, nextLesson } = data
+  const fetchData = useCallback(async () => {
+    setState((prev) => ({ ...prev, isLoading: true, error: null }))
 
-  // Build breadcrumb items
+    try {
+      const { moduleId, lessonId } = await params
+
+      // 1. Obtener el curso por slug
+      let course: CourseWithThemes
+      try {
+        const baseCourse = await coursesService.getBySlug(moduleId)
+        course = await coursesService.getWithThemes(baseCourse._id)
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          router.replace("/dashboard/library")
+          return
+        }
+        throw err
+      }
+
+      // 2. Obtener todos los temas con lecciones (para navegación)
+      const themes = course.themes as Theme[]
+      const allThemesUnsorted = await Promise.all(
+        themes.map((t) => themesService.getWithLessons(t._id))
+      )
+
+      // Ordenar temas por su campo order
+      const allThemes = allThemesUnsorted.sort(
+        (a, b) => (a.order ?? 0) - (b.order ?? 0)
+      )
+
+      // 3. Encontrar el tema actual (lessonId es realmente el themeId)
+      const currentTheme = allThemes.find((t) => t._id === lessonId)
+      if (!currentTheme) {
+        router.replace(`/dashboard/library/${moduleId}`)
+        return
+      }
+
+      // 4. Obtener progreso del curso
+      let courseProgress: CourseProgressData | null = null
+      try {
+        courseProgress = await progressService.getMyCourseProgress(course._id)
+      } catch (err) {
+        if (!(err instanceof ApiError && err.status === 404)) {
+          console.warn("Error obteniendo progreso:", err)
+        }
+      }
+
+      // 5. Obtener acceso por leccion (para bloqueo real)
+      let lessonAccessMap: Record<string, LessonAccessResponse> = {}
+      const lessonsForAccess = Array.isArray(currentTheme.lessons)
+        ? (currentTheme.lessons as BackendLesson[])
+        : []
+
+      try {
+        const accessEntries = await Promise.all(
+          lessonsForAccess.map(async (lesson) => {
+            const access = await progressService.getLessonAccess(lesson._id)
+            return [lesson._id, access] as const
+          })
+        )
+
+        lessonAccessMap = accessEntries.reduce<Record<string, LessonAccessResponse>>(
+          (acc, [lessonId, access]) => {
+            acc[lessonId] = access
+            return acc
+          },
+          {}
+        )
+      } catch (err) {
+        console.warn("Error obteniendo acceso a lecciones:", err)
+      }
+
+      setState({
+        course,
+        theme: currentTheme,
+        allThemes,
+        courseProgress,
+        lessonAccessMap,
+        isLoading: false,
+        error: null,
+      })
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.status === 401
+            ? "Tu sesión ha expirado. Inicia sesión de nuevo."
+            : "No pudimos cargar el tema. Verifica tu conexión."
+          : "Ocurrió un error inesperado."
+
+      setState((prev) => ({ ...prev, isLoading: false, error: message }))
+    }
+  }, [params, router])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  // Título dinámico
+  useEffect(() => {
+    if (state.theme) {
+      document.title = `${state.theme.title} | WC Training`
+    }
+    return () => { document.title = "WC Training" }
+  }, [state.theme])
+
+  // --- Carga / Error ---
+  if (state.isLoading) return <LessonDetailSkeleton />
+  if (state.error) return <LessonDetailError error={state.error} onRetry={fetchData} />
+  if (!state.course || !state.theme) return null
+
+  // --- Preparar datos ---
+  const { course, theme, allThemes, courseProgress, lessonAccessMap } = state
+
+  // Obtener progreso del tema actual
+  const themeProgress = (courseProgress?.themesProgress ?? []).find(
+    (tp) => tp.themeId === theme._id
+  ) ?? null
+
+  // Índice del tema actual dentro del curso
+  const themeIndex = allThemes.findIndex((t) => t._id === theme._id)
+  const totalThemes = allThemes.length
+
+  // Contar temas completados
+  const completedThemes = (courseProgress?.themesProgress ?? []).filter(
+    (tp) => tp.status === ProgressStatus.COMPLETED
+  ).length
+
+  // Progreso del tema
+  const themePercent = themeProgress?.progressPercentage ?? 0
+
+  // Lecciones del tema (backend) → tareas del UI (ordenadas por order)
+  const lessons = Array.isArray(theme.lessons)
+    ? [...(theme.lessons as BackendLesson[])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    : []
+
+  const tasks = transformLessonsToTasks(
+    lessons,
+    themeProgress,
+    course.slug,
+    theme._id,
+    lessonAccessMap
+  )
+
+  // Obtener el texto destacado del tema
+  const highlightedText = theme.highlightedText || theme.title.split(" ").slice(-2).join(" ")
+
+  // Número del módulo (displayOrder)
+  const moduleTitle = course.displayOrder > 0
+    ? `Módulo ${course.displayOrder}`
+    : course.title
+
+  // Breadcrumb
   const breadcrumbItems = [
     { label: "Módulos", href: "/dashboard/library" },
-    { label: moduleData.shortTitle, href: `/dashboard/library/${moduleId}` },
-    { label: lesson.highlightedText },
+    { label: course.title, href: `/dashboard/library/${course.slug}` },
+    { label: highlightedText },
   ]
+
+  // Navegación anterior / siguiente
+  const prevTheme = themeIndex > 0 ? allThemes[themeIndex - 1] : undefined
+  const nextTheme = themeIndex < totalThemes - 1 ? allThemes[themeIndex + 1] : undefined
+
+  const previousLesson = prevTheme
+    ? {
+        id: prevTheme._id,
+        title: prevTheme.highlightedText || prevTheme.title,
+      }
+    : undefined
+
+  const nextLesson = nextTheme
+    ? {
+        id: nextTheme._id,
+        title: nextTheme.highlightedText || nextTheme.title,
+      }
+    : undefined
 
   return (
     <div className="max-w-6xl mx-auto w-full">
@@ -318,44 +445,29 @@ export default async function LessonDetailPage({ params }: LessonDetailPageProps
 
       {/* Header */}
       <LessonDetailHeader
-        moduleTitle={moduleData.title}
-        lessonNumber={lessonNumber}
-        totalLessons={moduleData.totalLessons}
-        completedLessons={moduleData.completedLessons}
-        title={lesson.title}
-        highlightedText={lesson.highlightedText}
-        description={lesson.description}
-        progress={lesson.progress}
+        moduleTitle={moduleTitle}
+        lessonNumber={themeIndex + 1}
+        totalLessons={totalThemes}
+        completedLessons={completedThemes}
+        title={theme.title}
+        highlightedText={highlightedText}
+        description={theme.description}
+        progress={themePercent}
       />
 
-      {/* Tasks List */}
-      <TaskList
-        tasks={lesson.tasks}
-        moduleId={moduleId}
-        lessonId={lessonId}
+      {/* Lista de tareas */}
+       <TaskList
+        tasks={tasks}
+        moduleId={course.slug}
+        lessonId={theme._id}
       />
 
-      {/* Navigation */}
+      {/* Navegación */}
       <LessonNavigation
-        moduleId={moduleId}
+        moduleId={course.slug}
         previousLesson={previousLesson}
         nextLesson={nextLesson}
       />
     </div>
   )
-}
-
-/* ===== Metadata ===== */
-export async function generateMetadata({ params }: LessonDetailPageProps) {
-  const { moduleId, lessonId } = await params
-  const data = findLessonData(moduleId, lessonId)
-
-  if (!data) {
-    return { title: "Tema no encontrado" }
-  }
-
-  return {
-    title: `${data.lesson.title} | WC Training`,
-    description: data.lesson.description,
-  }
 }

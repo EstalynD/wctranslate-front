@@ -16,8 +16,9 @@ export {
   SearchBar,
   CategoryFilters,
   LibraryModuleCard,
+  CoursesGridSkeleton,
 } from "./library"
-export type { CategoryFilter, LibraryModule, ModuleCategory, ModuleLevel } from "./library"
+export type { CategoryFilterValue } from "./library"
 
 // Module Detail Components
 export {

@@ -2,17 +2,27 @@
 
 import { SlidersHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+  CourseCategory,
+  categoryLabels,
+} from "@/lib/types/course.types"
 
 /* ===== Types ===== */
-export type CategoryFilter = "Todos" | "Marketing" | "Técnico" | "Psicología" | "Legal" | "Styling"
+export type CategoryFilterValue = "ALL" | CourseCategory
 
 interface CategoryFiltersProps {
-  categories: CategoryFilter[]
-  activeCategory: CategoryFilter
-  onCategoryChange: (category: CategoryFilter) => void
+  categories: CategoryFilterValue[]
+  activeCategory: CategoryFilterValue
+  onCategoryChange: (category: CategoryFilterValue) => void
   showFiltersButton?: boolean
   onFiltersClick?: () => void
   className?: string
+}
+
+/* ===== Helpers ===== */
+function getCategoryLabel(value: CategoryFilterValue): string {
+  if (value === "ALL") return "Todos"
+  return categoryLabels[value] || value
 }
 
 /* ===== Category Filters Component ===== */
@@ -40,7 +50,7 @@ export function CategoryFilters({
                 : "bg-white/5 hover:bg-white/10 border border-white/10 text-white"
             )}
           >
-            {category}
+            {getCategoryLabel(category)}
           </button>
         )
       })}

@@ -1,0 +1,42 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Build (se genera dentro del contenedor)
+.next/
+out/
+
+# IDE y editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Variables de entorno (se pasan en runtime)
+.env
+.env.*
+!.env.example
+
+# Documentación
+README.md
+*.md
+docs/
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Archivos de diseño
+perfilModelo.html
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ESLint cache
+.eslintcache

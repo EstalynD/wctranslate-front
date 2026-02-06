@@ -1,4 +1,5 @@
 // Library Components Barrel Export
 export { SearchBar } from "./search-bar"
-export { CategoryFilters, type CategoryFilter } from "./category-filters"
-export { LibraryModuleCard, type LibraryModule, type ModuleCategory, type ModuleLevel } from "./library-module-card"
+export { CategoryFilters, type CategoryFilterValue } from "./category-filters"
+export { LibraryModuleCard } from "./library-module-card"
+export { CourseCardSkeleton, CoursesGridSkeleton } from "./course-card-skeleton"

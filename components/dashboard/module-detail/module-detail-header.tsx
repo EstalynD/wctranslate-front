@@ -1,4 +1,4 @@
-"use client"
+  "use client"
 
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
@@ -12,6 +12,7 @@ interface ModuleDetailHeaderProps {
   highlightedWord?: string
   description: string
   progress: number
+  showProgress?: boolean
   className?: string
 }
 
@@ -23,6 +24,7 @@ export function ModuleDetailHeader({
   highlightedWord,
   description,
   progress,
+  showProgress = true,
   className,
 }: ModuleDetailHeaderProps) {
   // Split title to highlight specific word
@@ -64,20 +66,22 @@ export function ModuleDetailHeader({
         </div>
 
         {/* Progress Card */}
-        <div className="bg-[var(--surface)] border border-white/10 rounded-2xl p-6 min-w-[200px] flex-shrink-0">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Progreso
-            </span>
-            <span className="text-sm font-bold text-primary">{progress}%</span>
+        {showProgress && (
+          <div className="bg-[var(--surface)] border border-white/10 rounded-2xl p-6 min-w-[200px] flex-shrink-0">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Progreso
+              </span>
+              <span className="text-sm font-bold text-primary">{progress}%</span>
+            </div>
+            <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+              <div
+                className="h-full gradient-coral-violet rounded-full transition-all duration-500"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
-          <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-            <div
-              className="h-full gradient-coral-violet rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
+        )}
       </div>
     </section>
   )

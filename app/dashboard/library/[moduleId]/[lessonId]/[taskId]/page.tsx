@@ -1,347 +1,102 @@
-import { notFound } from "next/navigation"
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { ArrowLeft, Clock, BookOpen, CheckCircle, Loader2, AlertCircle, RefreshCw, Download, FileText } from "lucide-react"
+import { ContentBlockRenderer, type ContentBlock as UIContentBlock } from "@/components/dashboard/lesson-detail"
+import { TaskCompletionModal } from "@/components/dashboard/lesson-detail/task-completion-modal"
+import type { ProgressUpdateResponse } from "@/lib/api/progress.service"
 import {
-  TaskProgressHeader,
-  TaskDetailHeader,
-  TaskResources,
-  TaskSubmission,
-  DeadlineCard,
-  type Resource,
-} from "@/components/dashboard/task-detail"
+  coursesService,
+  themesService,
+  lessonsService,
+  progressService,
+  ApiError,
+} from "@/lib/api"
+import type { ThemeWithLessons } from "@/lib/api/themes.service"
+import type {
+  BackendLesson,
+  ThemeProgressData,
+  LessonProgressData,
+  CourseProgressData,
+  LessonFullStatusResponse,
+} from "@/lib/types/course.types"
+import { LessonType, ProgressStatus, lessonTypeLabels } from "@/lib/types/course.types"
 
 /* ===== Types ===== */
-interface TaskDetail {
-  id: string
-  type: "video" | "exercise" | "quiz"
-  title: string
-  moduleNumber: number
-  estimatedTime: string
-  description: string
-  instructions: string[]
-  resources: Resource[]
-  deadline?: string
+interface TaskPageState {
+  course: { _id: string; slug: string; title: string; displayOrder: number }
+  theme: ThemeWithLessons
+  lesson: BackendLesson
+  allLessons: BackendLesson[]
+  courseProgress: CourseProgressData | null
+  lessonIndex: number
+  lessonStatus: LessonFullStatusResponse | null
+  isLoading: boolean
+  error: string | null
 }
 
-interface LessonInfo {
-  id: string
-  title: string
-  tasks: TaskDetail[]
+type TaskPageStatePartial = Partial<TaskPageState> & {
+  isLoading: boolean
+  error: string | null
 }
 
-interface ModuleInfo {
-  id: string
-  title: string
-  lessons: Record<string, LessonInfo>
-}
-
-/* ===== Mock Data (TODO: Replace with API) ===== */
-const taskDatabase: Record<string, ModuleInfo> = {
-  "psicologia-fan": {
-    id: "psicologia-fan",
-    title: "Psicología de la Audiencia",
-    lessons: {
-      "lesson-1": {
-        id: "lesson-1",
-        title: "Introducción al Engagement Emocional",
-        tasks: [
-          {
-            id: "task-1",
-            type: "video",
-            title: "Fundamentos del Engagement",
-            moduleNumber: 2,
-            estimatedTime: "15 min",
-            description:
-              "En esta primera lección, exploraremos los fundamentos de la conexión emocional con tu audiencia. Aprenderás cómo crear vínculos genuinos que mantengan a tus espectadores comprometidos y dispuestos a interactuar.",
-            instructions: [
-              "Mira el video completo sin pausas para captar el flujo de la información.",
-              "Toma notas de los <strong>3 pilares del engagement</strong> mencionados.",
-              "Reflexiona sobre cómo aplicas actualmente estos conceptos en tus transmisiones.",
-              "Completa el cuestionario de autoevaluación al final del video.",
-            ],
-            resources: [
-              {
-                id: "res-1",
-                name: "Guía_Engagement_V1.pdf",
-                type: "pdf",
-                size: "1.8 MB",
-                url: "#",
-              },
-            ],
-          },
-          {
-            id: "task-2",
-            type: "exercise",
-            title: "Práctica: Tu Primera Conexión",
-            moduleNumber: 2,
-            estimatedTime: "10 min",
-            description:
-              "Practica las técnicas de conexión emocional que aprendiste en el video anterior. Este ejercicio te ayudará a internalizar los conceptos y aplicarlos de forma natural.",
-            instructions: [
-              "Descarga la <strong>Guía de Ejercicios</strong> adjunta.",
-              "Graba un video corto (2-3 min) practicando la técnica del espejo emocional.",
-              "Sube tu grabación y describe qué técnica utilizaste.",
-              "Espera la retroalimentación del instructor.",
-            ],
-            resources: [
-              {
-                id: "res-1",
-                name: "Guía_Ejercicios_Conexión.pdf",
-                type: "pdf",
-                size: "2.1 MB",
-                url: "#",
-              },
-              {
-                id: "res-2",
-                name: "Ejemplo_Espejo_Emocional.mp4",
-                type: "video",
-                size: "18.5 MB",
-                url: "#",
-              },
-            ],
-            deadline: "28 de Feb, 23:59 PM",
-          },
-        ],
-      },
-      "lesson-2": {
-        id: "lesson-2",
-        title: "Manejo de Trolls y Haters",
-        tasks: [
-          {
-            id: "task-1",
-            type: "video",
-            title: "Identificando Perfiles Tóxicos",
-            moduleNumber: 2,
-            estimatedTime: "15 min",
-            description:
-              "Aprende a identificar los diferentes tipos de usuarios tóxicos y cómo diferenciar un hater pasajero de un acosador sistemático. Este conocimiento es fundamental para proteger tu bienestar emocional.",
-            instructions: [
-              "Visualiza el video completo prestando atención a los <strong>5 perfiles tóxicos</strong>.",
-              "Anota características distintivas de cada perfil.",
-              "Identifica si has encontrado alguno de estos perfiles en tus transmisiones.",
-              "Prepárate para el ejercicio práctico de la siguiente tarea.",
-            ],
-            resources: [
-              {
-                id: "res-1",
-                name: "Infografía_Perfiles_Tóxicos.pdf",
-                type: "pdf",
-                size: "3.2 MB",
-                url: "#",
-              },
-            ],
-          },
-          {
-            id: "task-2",
-            type: "exercise",
-            title: "Práctica de Escenario de Chat",
-            moduleNumber: 2,
-            estimatedTime: "20 min",
-            description:
-              "En esta sesión práctica, nos enfocaremos en la gestión de situaciones complejas durante una transmisión en vivo. Aprenderás a identificar señales de alerta y a mantener el control de la conversación sin romper el ambiente profesional.",
-            instructions: [
-              "Descarga la <strong>Guía de Escenarios de Chat</strong> adjunta en la sección de recursos.",
-              "Simula una conversación en la que un usuario intenta llevar la interacción a un plano no permitido según los lineamientos de la plataforma.",
-              "Realiza una captura de pantalla (o graba un breve clip de video) de tu respuesta siguiendo las técnicas de \"Redirección Suave\".",
-              "Sube tu archivo en el panel derecho y añade una breve explicación de por qué elegiste esa respuesta específica.",
-            ],
-            resources: [
-              {
-                id: "res-1",
-                name: "Guía_Escenarios_V1.pdf",
-                type: "pdf",
-                size: "2.4 MB",
-                url: "#",
-              },
-              {
-                id: "res-2",
-                name: "Ejemplo_Respuesta.mp4",
-                type: "video",
-                size: "15.8 MB",
-                url: "#",
-              },
-            ],
-            deadline: "24 de Oct, 23:59 PM",
-          },
-          {
-            id: "task-3",
-            type: "quiz",
-            title: "Evaluación: Psicología del Troll",
-            moduleNumber: 2,
-            estimatedTime: "10 min",
-            description:
-              "Evalúa tus conocimientos sobre los diferentes tipos de trolls y las estrategias para manejarlos. Esta evaluación te ayudará a consolidar lo aprendido.",
-            instructions: [
-              "Asegúrate de haber completado las tareas anteriores antes de iniciar.",
-              "Lee cada pregunta cuidadosamente antes de responder.",
-              "Tienes <strong>un solo intento</strong> para completar la evaluación.",
-              "Necesitas un 70% para aprobar y desbloquear el siguiente tema.",
-            ],
-            resources: [],
-          },
-        ],
-      },
-      "lesson-3": {
-        id: "lesson-3",
-        title: "Micro-expresiones y Venta Sugestiva",
-        tasks: [
-          {
-            id: "task-1",
-            type: "video",
-            title: "El Poder de las Micro-expresiones",
-            moduleNumber: 2,
-            estimatedTime: "20 min",
-            description:
-              "Descubre cómo las micro-expresiones faciales pueden ayudarte a conectar mejor con tu audiencia y aumentar el engagement de tus transmisiones.",
-            instructions: [
-              "Mira el video en un ambiente con buena iluminación para observar los detalles.",
-              "Practica las micro-expresiones frente a un espejo.",
-              "Graba un corto ensayo para autoevaluación.",
-              "Prepárate para el ejercicio práctico.",
-            ],
-            resources: [
-              {
-                id: "res-1",
-                name: "Atlas_Microexpresiones.pdf",
-                type: "pdf",
-                size: "5.4 MB",
-                url: "#",
-              },
-            ],
-          },
-        ],
-      },
-    },
-  },
-  "mastering-lighting": {
-    id: "mastering-lighting",
-    title: "Mastering Lighting",
-    lessons: {
-      "lesson-1": {
-        id: "lesson-1",
-        title: "Fundamentos de Iluminación",
-        tasks: [
-          {
-            id: "task-1",
-            type: "video",
-            title: "Tipos de Luz y Sus Efectos",
-            moduleNumber: 1,
-            estimatedTime: "20 min",
-            description:
-              "Aprende sobre los diferentes tipos de iluminación y cómo cada uno afecta tu imagen en cámara. Desde luz natural hasta configuraciones profesionales.",
-            instructions: [
-              "Observa los diferentes ejemplos de iluminación mostrados.",
-              "Toma nota de las configuraciones que más te gusten.",
-              "Experimenta con la iluminación de tu espacio actual.",
-              "Prepara preguntas para la sesión de Q&A.",
-            ],
-            resources: [
-              {
-                id: "res-1",
-                name: "Guía_Iluminación_Básica.pdf",
-                type: "pdf",
-                size: "4.2 MB",
-                url: "#",
-              },
-              {
-                id: "res-2",
-                name: "Comparativa_Luces.mp4",
-                type: "video",
-                size: "45.8 MB",
-                url: "#",
-              },
-            ],
-          },
-        ],
-      },
-      "lesson-2": {
-        id: "lesson-2",
-        title: "Setup de Iluminación Profesional",
-        tasks: [
-          {
-            id: "task-1",
-            type: "video",
-            title: "Configuración de 3 Puntos",
-            moduleNumber: 1,
-            estimatedTime: "25 min",
-            description:
-              "Domina la técnica clásica de iluminación de 3 puntos usada por profesionales del cine y streaming.",
-            instructions: [
-              "Sigue paso a paso la configuración mostrada.",
-              "Ajusta la intensidad según tu espacio.",
-              "Documenta tu configuración con fotos.",
-              "Comparte tu setup en el foro del curso.",
-            ],
-            resources: [
-              {
-                id: "res-1",
-                name: "Diagrama_3_Puntos.pdf",
-                type: "pdf",
-                size: "1.5 MB",
-                url: "#",
-              },
-            ],
-          },
-          {
-            id: "task-2",
-            type: "exercise",
-            title: "Práctica: Tu Primer Setup",
-            moduleNumber: 1,
-            estimatedTime: "30 min",
-            description:
-              "Configura tu propio setup de iluminación de 3 puntos siguiendo las instrucciones del tutorial.",
-            instructions: [
-              "Reúne el equipo necesario según la lista de recursos.",
-              "Configura cada punto de luz siguiendo el diagrama.",
-              "Toma fotos desde diferentes ángulos.",
-              "Sube las fotos con una descripción de tu proceso.",
-            ],
-            resources: [
-              {
-                id: "res-1",
-                name: "Lista_Equipos_Recomendados.pdf",
-                type: "pdf",
-                size: "0.8 MB",
-                url: "#",
-              },
-              {
-                id: "res-2",
-                name: "Setup_Ejemplo.mp4",
-                type: "video",
-                size: "28.3 MB",
-                url: "#",
-              },
-            ],
-            deadline: "15 de Mar, 23:59 PM",
-          },
-        ],
-      },
-    },
-  },
-}
-
-/* ===== Helper Functions ===== */
-function findTaskData(moduleId: string, lessonId: string, taskId: string) {
-  const moduleData = taskDatabase[moduleId]
-  if (!moduleData) return null
-
-  const lessonData = moduleData.lessons[lessonId]
-  if (!lessonData) return null
-
-  const taskIndex = lessonData.tasks.findIndex((t) => t.id === taskId)
-  if (taskIndex === -1) return null
-
-  const task = lessonData.tasks[taskIndex]
-  const totalTasks = lessonData.tasks.length
-  const currentTaskNumber = taskIndex + 1
-  const progress = Math.round((currentTaskNumber / totalTasks) * 100)
-
-  return {
-    module: moduleData,
-    lesson: lessonData,
-    task,
-    currentTaskNumber,
-    totalTasks,
-    progress,
+/* ===== Helpers ===== */
+function formatDuration(minutes: number | undefined): string {
+  if (!minutes) return "—"
+  if (minutes >= 60) {
+    const h = Math.floor(minutes / 60)
+    const m = minutes % 60
+    return m > 0 ? `${h}h ${m} min` : `${h}h`
   }
+  return `${minutes} min`
+}
+
+/* ===== Loading Skeleton ===== */
+function TaskDetailSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#0b0a1a] text-white animate-pulse">
+      <div className="px-4 md:px-6 lg:px-8 py-6">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="h-4 w-4 bg-white/5 rounded" />
+          <div className="h-4 w-48 bg-white/5 rounded" />
+        </div>
+        <div className="flex flex-wrap items-center gap-3 mb-3">
+          <div className="h-6 w-32 bg-white/5 rounded-full" />
+          <div className="h-4 w-20 bg-white/5 rounded" />
+        </div>
+        <div className="h-10 w-96 bg-white/5 rounded-xl mb-3" />
+        <div className="h-5 w-full bg-white/5 rounded-lg mb-2" />
+        <div className="h-5 w-3/4 bg-white/5 rounded-lg" />
+      </div>
+      <div className="bg-[#15132d] rounded-t-3xl md:rounded-3xl md:mx-4 lg:mx-6 p-4 sm:p-6 md:p-8 border border-white/5 border-b-0 md:border-b">
+        <div className="h-[600px] bg-white/5 rounded-xl" />
+      </div>
+    </div>
+  )
+}
+
+/* ===== Error State ===== */
+function TaskDetailError({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <div className="min-h-screen bg-[#0b0a1a] text-white flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="size-20 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+          <AlertCircle className="size-10 text-red-400" />
+        </div>
+        <h3 className="text-xl font-bold mb-2">Error al cargar la tarea</h3>
+        <p className="text-slate-400 max-w-md mb-6">{error}</p>
+        <button
+          onClick={onRetry}
+          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-sm font-bold transition-all"
+        >
+          <RefreshCw className="size-4" />
+          Reintentar
+        </button>
+      </div>
+    </div>
+  )
 }
 
 /* ===== Page Props ===== */
@@ -350,118 +105,447 @@ interface TaskDetailPageProps {
 }
 
 /* ===== Page Component ===== */
-export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
-  const { moduleId, lessonId, taskId } = await params
-  const data = findTaskData(moduleId, lessonId, taskId)
+export default function TaskDetailPage({ params }: TaskDetailPageProps) {
+  const router = useRouter()
 
-  if (!data) {
-    notFound()
-  }
+  const [state, setState] = useState<TaskPageStatePartial>({
+    isLoading: true,
+    error: null,
+  })
 
-  const { lesson, task, currentTaskNumber, totalTasks, progress } = data
+  const [isCompleting, setIsCompleting] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [completionResponse, setCompletionResponse] = useState<ProgressUpdateResponse | null>(null)
+  const [showCompletionModal, setShowCompletionModal] = useState(false)
 
-  // Build back href
-  const backHref = `/dashboard/library/${moduleId}/${lessonId}`
+  const fetchData = useCallback(async () => {
+    setState({ isLoading: true, error: null })
+    setActionError(null)
 
-  // Determine if task needs submission
-  const needsSubmission = task.type === "exercise"
+    try {
+      const { moduleId, lessonId, taskId } = await params
+
+      // 1. Obtener curso por slug
+      let baseCourse
+      try {
+        baseCourse = await coursesService.getBySlug(moduleId)
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          router.replace("/dashboard/library")
+          return
+        }
+        throw err
+      }
+
+      // 2. Obtener el tema con sus lecciones
+      let themeData: ThemeWithLessons
+      try {
+        themeData = await themesService.getWithLessons(lessonId)
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          router.replace(`/dashboard/library/${moduleId}`)
+          return
+        }
+        throw err
+      }
+
+      // 3. Obtener la lección individual
+      let lesson: BackendLesson
+      try {
+        lesson = await lessonsService.getById(taskId)
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          router.replace(`/dashboard/library/${moduleId}/${lessonId}`)
+          return
+        }
+        throw err
+      }
+
+      // 4. Lista de todas las lecciones del tema (ordenadas por order)
+      const allLessons = Array.isArray(themeData.lessons)
+        ? [...(themeData.lessons as BackendLesson[])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        : []
+
+      const lessonIndex = allLessons.findIndex((l) => l._id === taskId)
+
+      // 5. Progreso del curso
+      let courseProgress: CourseProgressData | null = null
+      try {
+        courseProgress = await progressService.getMyCourseProgress(baseCourse._id)
+      } catch (err) {
+        if (!(err instanceof ApiError && err.status === 404)) {
+          console.warn("Error obteniendo progreso:", err)
+        }
+      }
+
+      // 6. Estado completo de acceso
+      let lessonStatus: LessonFullStatusResponse | null = null
+      try {
+        lessonStatus = await progressService.getLessonFullStatus(taskId)
+      } catch (err) {
+        console.warn("Error obteniendo estado de leccion:", err)
+      }
+
+      setState({
+        course: {
+          _id: baseCourse._id,
+          slug: baseCourse.slug,
+          title: baseCourse.title,
+          displayOrder: baseCourse.displayOrder,
+        },
+        theme: themeData,
+        lesson,
+        allLessons,
+        courseProgress,
+        lessonIndex: lessonIndex >= 0 ? lessonIndex : 0,
+        lessonStatus,
+        isLoading: false,
+        error: null,
+      })
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.status === 401
+            ? "Tu sesión ha expirado. Inicia sesión de nuevo."
+            : "No pudimos cargar la tarea. Verifica tu conexión."
+          : "Ocurrió un error inesperado."
+
+      setState({ isLoading: false, error: message })
+    }
+  }, [params, router])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  // Título dinámico
+  useEffect(() => {
+    if (state.lesson) {
+      document.title = `${state.lesson.title} | WC Training`
+    }
+    return () => {
+      document.title = "WC Training"
+    }
+  }, [state.lesson])
+
+  // Handler para marcar como completada
+  const handleMarkComplete = useCallback(async () => {
+    if (!state.lesson || isCompleting) return
+    setActionError(null)
+
+    const access = state.lessonStatus?.access
+    const contentStatus = state.lessonStatus?.contentStatus
+    const dailyStatus = state.lessonStatus?.dailyStatus
+
+    const accessBlocked = access ? !access.canAccess : false
+    const contentBlocked = contentStatus ? !contentStatus.canView : false
+    const dailyLimitReached = dailyStatus ? !dailyStatus.canCompleteMore : false
+
+    if (accessBlocked || contentBlocked || dailyLimitReached) {
+      const reason =
+        access?.reason ||
+        contentStatus?.preQuiz?.message ||
+        contentStatus?.postQuiz?.message ||
+        (dailyLimitReached ? "Alcanzaste tu limite diario de tareas." : "")
+
+      setActionError(reason || "No puedes completar esta leccion por ahora.")
+      return
+    }
+
+    setIsCompleting(true)
+    try {
+      const response = await progressService.markLessonComplete(state.lesson._id)
+
+      if (!response.success) {
+        setActionError(response.message || "No se pudo completar la leccion.")
+        return
+      }
+
+      // Guardar respuesta y mostrar modal de éxito
+      setCompletionResponse(response)
+      setShowCompletionModal(true)
+
+      await fetchData()
+    } catch (err) {
+      console.error("Error al marcar como completada:", err)
+      setActionError("No se pudo completar la leccion. Intenta de nuevo.")
+    } finally {
+      setIsCompleting(false)
+    }
+  }, [state.lesson, isCompleting, fetchData])
+
+  // --- Loading / Error ---
+  if (state.isLoading) return <TaskDetailSkeleton />
+  if (state.error) return <TaskDetailError error={state.error} onRetry={fetchData} />
+  if (!state.course || !state.theme || !state.lesson || !state.allLessons) return null
+
+  // --- Preparar datos ---
+  const {
+    course,
+    theme,
+    lesson,
+    allLessons,
+    courseProgress,
+    lessonIndex = 0,
+    lessonStatus,
+  } = state
+
+  const access = lessonStatus?.access
+  const contentStatus = lessonStatus?.contentStatus
+  const dailyStatus = lessonStatus?.dailyStatus
+
+  const accessBlocked = access ? !access.canAccess : false
+  const contentBlocked = contentStatus ? !contentStatus.canView : false
+  const dailyLimitReached = dailyStatus ? !dailyStatus.canCompleteMore : false
+
+  const accessMessage =
+    access?.reason ||
+    contentStatus?.preQuiz?.message ||
+    contentStatus?.postQuiz?.message
+
+  // Progreso
+  const themeProgress: ThemeProgressData | null =
+    (courseProgress?.themesProgress ?? []).find((tp) => tp.themeId === theme._id) ?? null
+
+  const lessonProgress: LessonProgressData | null =
+    (themeProgress?.lessonsProgress ?? []).find((lp) => lp.lessonId === lesson._id) ?? null
+
+  const isCompleted = lessonProgress?.status === ProgressStatus.COMPLETED
+
+  // Navegación entre tareas
+  const prevLesson = lessonIndex > 0 ? allLessons[lessonIndex - 1] : null
+  const nextLesson = lessonIndex < allLessons.length - 1 ? allLessons[lessonIndex + 1] : null
+  const basePath = `/dashboard/library/${course.slug}/${theme._id}`
+
+  // Determinar siguiente lección: usar unlockedContent del response o la siguiente en la lista
+  const nextLessonIdForModal =
+    completionResponse?.unlockedContent?.nextLesson || nextLesson?._id
+
+  // Tipo de tarea label
+  const typeLabel = lessonTypeLabels?.[lesson.type] ?? lesson.type
+
+  // Content blocks para renderizar
+  const contentBlocks = lesson.contentBlocks ?? []
+
+  // Recursos
+  const resources = lesson.resources ?? []
 
   return (
-    <div className="max-w-7xl mx-auto w-full">
-      {/* Progress Header */}
-      <TaskProgressHeader
-        backHref={backHref}
-        currentTask={currentTaskNumber}
-        totalTasks={totalTasks}
-        progress={progress}
-      />
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Instructional Content */}
-        <div className="lg:col-span-8 space-y-6">
-          {/* Task Header */}
-          <TaskDetailHeader
-            moduleNumber={task.moduleNumber}
-            estimatedTime={task.estimatedTime}
-            title={task.title}
-            description={task.description}
-            instructions={task.instructions}
-          />
-
-          {/* Resources */}
-          {task.resources.length > 0 && (
-            <TaskResources resources={task.resources} />
-          )}
+    <div className="min-h-screen bg-[#0b0a1a] text-white">
+      {/* Header */}
+      <div className="px-2 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-sm text-slate-400 mb-6">
+          <Link
+            href={basePath}
+            className="hover:text-white transition-colors flex items-center gap-2"
+          >
+            <ArrowLeft className="size-4" />
+            Volver a Lección
+          </Link>
+          <span>/</span>
+          <span className="hidden sm:inline truncate max-w-[200px]">{course.title}</span>
+          <span className="hidden sm:inline">/</span>
+          <span className="truncate max-w-[150px] sm:max-w-none">{theme.title}</span>
         </div>
 
-        {/* Right Column: Submission Area */}
-        <div className="lg:col-span-4">
-          <div className="sticky top-24 space-y-6">
-            {/* Submission Panel (only for exercises) */}
-            {needsSubmission && (
-              <TaskSubmission
-                maxFileSize="50MB"
-                acceptedFormats={["JPG", "PNG", "MP4", "PDF"]}
-              />
+        {/* Header de la tarea */}
+        <header className="mb-8">
+          {/* Badges */}
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <BookOpen className="size-3" />
+              {typeLabel}
+            </span>
+            <span className="text-slate-400 text-xs sm:text-sm flex items-center gap-1.5">
+              <Clock className="size-3 sm:size-4" />
+              {formatDuration(lesson.durationMinutes)}
+            </span>
+            {isCompleted && (
+              <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <CheckCircle className="size-3" />
+                Completada
+              </span>
             )}
+            <span className="text-slate-500 text-xs">
+              Tarea {lessonIndex + 1} de {allLessons.length}
+            </span>
+          </div>
 
-            {/* Quiz CTA (for quiz type) */}
-            {task.type === "quiz" && (
-              <div className="p-6 rounded-xl bg-[var(--surface)] border border-white/5 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full gradient-coral-violet" />
-                <h2 className="text-xl font-bold mb-4">Evaluación</h2>
-                <p className="text-sm text-slate-400 mb-6">
-                  Esta evaluación consta de 10 preguntas. Necesitas un 70% para aprobar.
+          {/* Título */}
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight mb-3">
+            {lesson.title}
+          </h1>
+
+          {/* Descripción */}
+          {lesson.description && (
+            <p className="text-slate-400 text-sm sm:text-base md:text-lg">
+              {lesson.description}
+            </p>
+          )}
+        </header>
+      </div>
+
+      {/* Alertas de acceso */}
+      {(accessBlocked || contentBlocked || dailyLimitReached || actionError) && (
+        <div className="px-2 sm:px-4 md:px-6 lg:px-8 mb-4">
+          <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            <AlertCircle className="size-4 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold">Acceso restringido</p>
+              <p>
+                {actionError ||
+                  accessMessage ||
+                  (dailyLimitReached
+                    ? "Alcanzaste tu limite diario de tareas. Intenta manana."
+                    : "Completa los requisitos pendientes para continuar.")}
+              </p>
+              {dailyStatus && (
+                <p className="text-xs text-amber-100/80">
+                  {dailyStatus.tasksCompletedToday}/{dailyStatus.maxDailyTasks} tareas hoy
                 </p>
-                <button className="w-full py-4 rounded-xl gradient-coral-violet text-white font-bold text-lg shadow-lg shadow-primary/20 hover:shadow-primary/40 active:scale-[0.98] transition-all">
-                  Iniciar Evaluación
-                </button>
-              </div>
-            )}
-
-            {/* Video CTA (for video type) */}
-            {task.type === "video" && (
-              <div className="p-6 rounded-xl bg-[var(--surface)] border border-white/5 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full gradient-coral-violet" />
-                <h2 className="text-xl font-bold mb-4">Video de la Lección</h2>
-                <div className="aspect-video bg-black/50 rounded-lg mb-4 flex items-center justify-center">
-                  <div className="size-16 rounded-full gradient-coral-violet flex items-center justify-center cursor-pointer hover:scale-110 transition-transform">
-                    <svg
-                      className="size-6 text-white ml-1"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                </div>
-                <button className="w-full py-3 rounded-xl border border-white/10 text-white font-bold hover:bg-white/5 transition-all">
-                  Marcar como Completado
-                </button>
-              </div>
-            )}
-
-            {/* Deadline Card */}
-            {task.deadline && <DeadlineCard deadline={task.deadline} />}
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Content Blocks - Full width */}
+      <main className="bg-[#15132d] rounded-t-2xl sm:rounded-t-3xl md:rounded-3xl md:mx-4 lg:mx-6 p-1 sm:p-4 md:p-8 border border-white/5 border-b-0 md:border-b">
+        {accessBlocked || contentBlocked ? (
+          <div className="text-center py-16">
+            <p className="text-slate-400">
+              {accessMessage || "No puedes ver esta leccion todavia."}
+            </p>
+          </div>
+        ) : contentBlocks.length > 0 ? (
+          <ContentBlockRenderer
+            blocks={contentBlocks as unknown as UIContentBlock[]}
+          />
+        ) : (
+          <div className="text-center py-16">
+            <p className="text-slate-500">Esta tarea no tiene contenido aún</p>
+          </div>
+        )}
+
+        {/* Recursos descargables */}
+        {resources.length > 0 && (
+          <div className="mt-8 pt-8 border-t border-white/5">
+            <h3 className="text-lg font-bold mb-4">Recursos</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {resources.map((r) => (
+                <a
+                  key={r.id}
+                  href={r.url}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary/50 transition-all group"
+                >
+                  <div className="size-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+                    <FileText className="size-5 text-red-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{r.name}</p>
+                    {r.size && <p className="text-xs text-slate-400">{r.size}</p>}
+                  </div>
+                  <Download className="size-4 text-slate-400 group-hover:text-primary transition-colors" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Modal de éxito al completar */}
+      <TaskCompletionModal
+        isOpen={showCompletionModal}
+        onClose={() => setShowCompletionModal(false)}
+        response={completionResponse}
+        basePath={basePath}
+        nextLessonId={nextLessonIdForModal}
+        themeCompleted={completionResponse?.themeCompleted}
+        courseCompleted={completionResponse?.courseCompleted}
+      />
+
+      {/* Footer - Navegación y Completar */}
+      <footer className="sticky bottom-0 bg-[#0b0a1a]/95 backdrop-blur-lg border-t border-white/5 px-2 sm:px-4 py-3 md:px-6 md:py-4">
+        <div className="flex justify-between items-center gap-2">
+          {/* Anterior */}
+          {prevLesson ? (
+            <Link
+              href={`${basePath}/${prevLesson._id}`}
+              className="px-3 sm:px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-sm font-medium transition-all"
+            >
+              <span className="hidden sm:inline">&larr; Anterior</span>
+              <span className="sm:hidden">&larr;</span>
+            </Link>
+          ) : (
+            <Link
+              href={basePath}
+              className="px-3 sm:px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-sm font-medium transition-all"
+            >
+              <span className="hidden sm:inline">&larr; Volver</span>
+              <span className="sm:hidden">&larr;</span>
+            </Link>
+          )}
+
+          {/* Botón Completar */}
+          <button
+            onClick={handleMarkComplete}
+            disabled={
+              isCompleted ||
+              isCompleting ||
+              accessBlocked ||
+              contentBlocked ||
+              dailyLimitReached
+            }
+            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 ${
+              isCompleted
+                ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 cursor-default shadow-none"
+                : isCompleting || accessBlocked || contentBlocked || dailyLimitReached
+                  ? "bg-white/5 border border-white/10 text-white/50 cursor-wait shadow-none"
+                  : "bg-gradient-to-r from-orange-400 to-pink-500 shadow-orange-500/20 hover:shadow-orange-500/40 active:scale-[0.98]"
+            }`}
+          >
+            {isCompleting ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Guardando...
+              </>
+            ) : isCompleted ? (
+              <>
+                <CheckCircle className="size-4" />
+                Completada
+              </>
+            ) : (
+              <>
+                <CheckCircle className="size-4" />
+                Completar
+              </>
+            )}
+          </button>
+
+          {/* Siguiente */}
+          {nextLesson ? (
+            <Link
+              href={`${basePath}/${nextLesson._id}`}
+              className="px-3 sm:px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-sm font-medium transition-all"
+            >
+              <span className="hidden sm:inline">Siguiente &rarr;</span>
+              <span className="sm:hidden">&rarr;</span>
+            </Link>
+          ) : (
+            <Link
+              href={basePath}
+              className="px-3 sm:px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-sm font-medium transition-all"
+            >
+              <span className="hidden sm:inline">Finalizar &rarr;</span>
+              <span className="sm:hidden">&rarr;</span>
+            </Link>
+          )}
+        </div>
+      </footer>
     </div>
   )
-}
-
-/* ===== Metadata ===== */
-export async function generateMetadata({ params }: TaskDetailPageProps) {
-  const { moduleId, lessonId, taskId } = await params
-  const data = findTaskData(moduleId, lessonId, taskId)
-
-  if (!data) {
-    return { title: "Tarea no encontrada" }
-  }
-
-  return {
-    title: `${data.task.title} | WC Training`,
-    description: data.task.description,
-  }
 }

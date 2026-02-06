@@ -1,7 +1,7 @@
 "use client"
 
-import { Bell, Settings, Home } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useState } from "react"
+import { Home, Loader2 } from "lucide-react"
 import {
   ProfileHeader,
   PersonalInfoForm,
@@ -9,68 +9,94 @@ import {
   LearningStats,
   AchievementsGrid,
 } from "@/components/dashboard/profile"
+import { useAuth } from "@/lib/contexts"
+import { usersService } from "@/lib/api"
 
-/* ===== Mock Data ===== */
-// TODO: Replace with actual API calls
-const mockUser = {
-  name: "Elena Vance",
-  email: "elena.vance@wctraining.com",
-  avatar:
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuCkQQhat69Jhr3pWqXRhLGjXrsQZ7xDhlU_x9AdJPJlfLTvZqEjvPRRG8lIvmOH18uIIQWuXgl58Ve2IwbS3Vn8PLTG_wk39E8VHqel0YI_DiARClL1Rt6LSZCODlnm5xag1Gh-8SaoViYHzvecM_0n7cFxSv5cEkr2RGSSKfKgVnImhNFqFBcY1LA7OUhKlXj5t0fJ8eBCpMp1ORY4-0EY2e1WC_f_u6n2aw8afCjQ-blsxDKdNH0bnT5bemiCWlNRwNReYeSNgs8",
-  level: "Nivel Diamante",
-  memberSince: "2022",
-  studio: "Vixen Studio International",
-  bio: "Modelo profesional con 3 años de experiencia. Apasionada por el aprendizaje continuo y la interacción auténtica.",
+/* ===== Helper: Formatear fecha de registro ===== */
+function formatMemberSince(dateStr: string): string {
+  const date = new Date(dateStr)
+  const months = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+  ]
+  return `${months[date.getMonth()]} ${date.getFullYear()}`
 }
 
-const mockStats = {
-  hoursTrainied: 124,
-  modulesCompleted: 18,
-  tasksSubmitted: 42,
-}
-
-const mockNotifications = {
-  emailAlerts: true,
-  pushNotifications: true,
-  communityMessages: false,
+/* ===== Helper: Obtener label del nivel ===== */
+function getLevelLabel(level: number): string {
+  if (level >= 50) return "Nivel Diamante"
+  if (level >= 30) return "Nivel Platino"
+  if (level >= 20) return "Nivel Oro"
+  if (level >= 10) return "Nivel Plata"
+  if (level >= 5) return "Nivel Bronce"
+  return `Nivel ${level}`
 }
 
 /* ===== Profile Page ===== */
 export default function ProfilePage() {
-  // Event handlers
-  const handleAvatarChange = () => {
-    // TODO: Open file picker and upload avatar
-    console.log("Change avatar")
+  const { user, updateUser } = useAuth()
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
+
+  // Si no hay usuario aún, mostrar loading
+  if (!user) {
+    return (
+      <main className="flex-1 flex items-center justify-center bg-[var(--deep-dark)]">
+        <Loader2 className="size-8 text-primary animate-spin" />
+      </main>
+    )
   }
 
-  const handleShareProfile = () => {
-    // TODO: Open share modal or copy link
-    console.log("Share profile")
+  // Datos del usuario autenticado
+  const fullName = `${user.profile.firstName} ${user.profile.lastName}`
+  const level = getLevelLabel(user.gamification?.level || 1)
+  const memberSince = formatMemberSince(user.createdAt)
+
+  // Cuando se sube un nuevo avatar
+  const handleAvatarUploaded = (avatarUrl: string) => {
+    updateUser({
+      ...user,
+      profile: { ...user.profile, avatarUrl },
+    })
   }
 
-  const handleSavePersonalInfo = (data: {
-    fullName: string
+  // Cuando se guardan los datos personales
+  const handleProfileSaved = (data: {
+    firstName: string
+    lastName: string
+    nickName: string
     email: string
-    studio: string
     bio: string
   }) => {
-    // TODO: Send to API
-    console.log("Save personal info:", data)
+    updateUser({
+      ...user,
+      profile: {
+        ...user.profile,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        nickName: data.nickName || undefined,
+        bio: data.bio || undefined,
+      },
+    })
   }
 
-  const handleCancelEdit = () => {
-    // TODO: Reset form to original values
-    console.log("Cancel edit")
-  }
+  // Cambiar contraseña
+  const handlePasswordChange = async (
+    currentPassword: string,
+    newPassword: string
+  ) => {
+    setPasswordError(null)
+    setPasswordSuccess(false)
 
-  const handlePasswordChange = (currentPassword: string, newPassword: string) => {
-    // TODO: Send to API
-    console.log("Change password", { currentPassword, newPassword })
-  }
-
-  const handleNotificationsChange = (notifications: typeof mockNotifications) => {
-    // TODO: Send to API
-    console.log("Update notifications:", notifications)
+    try {
+      await usersService.changePassword({ currentPassword, newPassword })
+      setPasswordSuccess(true)
+      setTimeout(() => setPasswordSuccess(false), 3000)
+    } catch (err) {
+      setPasswordError(
+        err instanceof Error ? err.message : "Error al cambiar la contraseña"
+      )
+    }
   }
 
   return (
@@ -86,36 +112,25 @@ export default function ProfilePage() {
           </span>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md text-white"
-            aria-label="Notificaciones"
-          >
+        {/* TODO: Botones de notificaciones y configuración - Sin lógica de backend aún */}
+        {/* <div className="flex gap-4">
+          <Button variant="ghost" size="icon" className="bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md text-white" aria-label="Notificaciones">
             <Bell className="size-5" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md text-white"
-            aria-label="Configuración"
-          >
+          <Button variant="ghost" size="icon" className="bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md text-white" aria-label="Configuración">
             <Settings className="size-5" />
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* Profile Header with Banner and Avatar */}
       <ProfileHeader
-        name={mockUser.name}
-        email={mockUser.email}
-        avatar={mockUser.avatar}
-        level={mockUser.level}
-        memberSince={mockUser.memberSince}
-        onAvatarChange={handleAvatarChange}
-        onShareProfile={handleShareProfile}
+        name={fullName}
+        email={user.email}
+        avatar={user.profile.avatarUrl || null}
+        level={level}
+        memberSince={memberSince}
+        onAvatarUploaded={handleAvatarUploaded}
       />
 
       {/* Content Grid */}
@@ -125,34 +140,70 @@ export default function ProfilePage() {
           {/* Personal Info Form */}
           <PersonalInfoForm
             initialData={{
-              fullName: mockUser.name,
-              email: mockUser.email,
-              studio: mockUser.studio,
-              bio: mockUser.bio,
+              firstName: user.profile.firstName,
+              lastName: user.profile.lastName,
+              nickName: user.profile.nickName || "",
+              email: user.email,
+              bio: user.profile.bio || "",
             }}
-            onSave={handleSavePersonalInfo}
-            onCancel={handleCancelEdit}
+            onSaved={handleProfileSaved}
           />
 
-          {/* Account Settings */}
+          {/* Account Settings - Contraseña funcional, notificaciones comentadas */}
           <AccountSettings
-            notifications={mockNotifications}
+            notifications={{
+              emailAlerts: false,
+              pushNotifications: false,
+              communityMessages: false,
+            }}
             onPasswordChange={handlePasswordChange}
-            onNotificationsChange={handleNotificationsChange}
+            passwordError={passwordError}
+            passwordSuccess={passwordSuccess}
           />
         </div>
 
         {/* Right Column - Stats and Achievements */}
         <div className="space-y-8">
-          {/* Learning Stats */}
-          <LearningStats
-            hoursTrainied={mockStats.hoursTrainied}
-            modulesCompleted={mockStats.modulesCompleted}
-            tasksSubmitted={mockStats.tasksSubmitted}
-          />
+          {/* Learning Stats - TODO: Conectar con endpoint de stats reales cuando exista */}
+          {/* <LearningStats
+            hoursTrainied={0}
+            modulesCompleted={0}
+            tasksSubmitted={0}
+          /> */}
 
-          {/* Achievements */}
-          <AchievementsGrid unlockedCount={12} totalCount={30} />
+          {/* Achievements - TODO: Sin sistema de logros en backend aún */}
+          {/* <AchievementsGrid unlockedCount={0} totalCount={30} /> */}
+
+          {/* Gamificación básica del usuario */}
+          <div className="bg-card-dark border border-white/5 p-8 rounded-[2rem] shadow-xl shadow-black/20">
+            <h3 className="text-xl font-bold mb-6">Tu Progreso</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-slate-400">Nivel</span>
+                <span className="text-lg font-black text-primary">
+                  {user.gamification?.level || 1}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-slate-400">Estrellas</span>
+                <span className="text-lg font-black text-yellow-400">
+                  {user.gamification?.stars || 0}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-slate-400">XP Actual</span>
+                <span className="text-lg font-black text-accent">
+                  {user.gamification?.currentXp || 0}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-slate-400">Plan</span>
+                <span className="text-sm font-bold text-white uppercase">
+                  {user.subscriptionAccess?.planType || "TESTER"}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>

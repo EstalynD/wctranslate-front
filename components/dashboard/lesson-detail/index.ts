@@ -15,3 +15,5 @@ export {
   type ContentBlock,
   type ContentBlockSettings
 } from "./content-block-renderer"
+
+export { TaskCompletionModal } from "./task-completion-modal"

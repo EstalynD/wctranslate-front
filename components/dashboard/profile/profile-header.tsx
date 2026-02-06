@@ -1,17 +1,19 @@
 "use client"
 
-import { Camera, Share2, Diamond } from "lucide-react"
+import { useState, useRef } from "react"
+import { Camera, Share2, Diamond, Loader2 } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
+import { usersService } from "@/lib/api"
 
 /* ===== Types ===== */
 interface ProfileHeaderProps {
   name: string
   email: string
-  avatar: string
+  avatar: string | null
   level: string
   memberSince: string
-  onAvatarChange?: () => void
+  onAvatarUploaded?: (avatarUrl: string) => void
   onShareProfile?: () => void
 }
 
@@ -21,9 +23,60 @@ export function ProfileHeader({
   level,
   avatar,
   memberSince,
-  onAvatarChange,
+  onAvatarUploaded,
   onShareProfile,
 }: ProfileHeaderProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+
+  // Iniciales del usuario como fallback
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2)
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validar tipo y tamaño en el cliente
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError("Solo se permiten imágenes JPEG, PNG, WebP o GIF")
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("La imagen no puede superar los 5MB")
+      return
+    }
+
+    setIsUploading(true)
+    setUploadError(null)
+
+    try {
+      const response = await usersService.uploadAvatar(file)
+      onAvatarUploaded?.(response.avatarUrl)
+    } catch (err) {
+      setUploadError(
+        err instanceof Error ? err.message : "Error al subir la foto"
+      )
+    } finally {
+      setIsUploading(false)
+      // Limpiar el input para poder subir la misma imagen de nuevo
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
+  }
+
   return (
     <>
       {/* Banner Gradient */}
@@ -38,22 +91,44 @@ export function ProfileHeader({
       <div className="px-8 md:px-12 -mt-20 mb-8 flex flex-col md:flex-row items-end gap-8 relative z-10">
         {/* Avatar */}
         <div className="relative group">
-          <div className="size-40 rounded-full border-[6px] border-[var(--deep-dark)] p-1 bg-[var(--deep-dark)] shadow-2xl">
-            <Image
-              src={avatar}
-              alt={`Foto de perfil de ${name}`}
-              width={160}
-              height={160}
-              className="w-full h-full object-cover rounded-full"
-            />
+          <div className="size-40 rounded-full border-[6px] border-[var(--deep-dark)] p-1 bg-[var(--deep-dark)] shadow-2xl overflow-hidden">
+            {avatar ? (
+              <Image
+                src={avatar}
+                alt={`Foto de perfil de ${name}`}
+                width={160}
+                height={160}
+                className="w-full h-full object-cover rounded-full"
+              />
+            ) : (
+              <div className="w-full h-full rounded-full bg-gradient-to-br from-primary/60 to-accent/60 flex items-center justify-center">
+                <span className="text-4xl font-black text-white">
+                  {initials}
+                </span>
+              </div>
+            )}
+            {isUploading && (
+              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                <Loader2 className="size-8 text-white animate-spin" />
+              </div>
+            )}
           </div>
           <button
-            onClick={onAvatarChange}
-            className="absolute bottom-4 right-2 bg-card-dark text-white p-2.5 rounded-full border border-white/10 shadow-lg hover:bg-primary transition-colors"
+            onClick={handleAvatarClick}
+            disabled={isUploading}
+            className="absolute bottom-4 right-2 bg-card-dark text-white p-2.5 rounded-full border border-white/10 shadow-lg hover:bg-primary transition-colors disabled:opacity-50"
             aria-label="Cambiar foto de perfil"
           >
             <Camera className="size-4" />
           </button>
+          {/* Input oculto para seleccionar archivo */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={handleFileChange}
+            className="hidden"
+          />
         </div>
 
         {/* Name and Level */}
@@ -70,10 +145,13 @@ export function ProfileHeader({
               Miembro desde {memberSince}
             </span>
           </div>
+          {uploadError && (
+            <p className="text-red-400 text-xs mt-2">{uploadError}</p>
+          )}
         </div>
 
-        {/* Share Button */}
-        <div className="mb-4 hidden md:block">
+        {/* Share Button - TODO: Sin lógica de backend aún */}
+        {/* <div className="mb-4 hidden md:block">
           <Button
             variant="outline"
             onClick={onShareProfile}
@@ -82,7 +160,7 @@ export function ProfileHeader({
             <Share2 className="size-4 text-primary" />
             Compartir Perfil
           </Button>
-        </div>
+        </div> */}
       </div>
     </>
   )
