@@ -33,15 +33,12 @@ COPY --from=deps /app/package.json ./
 
 # Copiar configuraciones de build
 COPY next.config.ts tsconfig.json postcss.config.js components.json ./
-COPY next-env.d.ts ./
 
 # Copiar código fuente
 COPY app/ ./app/
 COPY components/ ./components/
 COPY lib/ ./lib/
 COPY public/ ./public/
-COPY template/ ./template/
-COPY docs/ ./docs/
 
 # Variables de entorno necesarias en build time
 # Estas se pueden sobrescribir con --build-arg
