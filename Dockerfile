@@ -8,10 +8,10 @@ FROM node:22-alpine AS base
 
 RUN apk add --no-cache libc6-compat
 
-# Habilitar corepack para pnpm
+# Habilitar corepack para pnpm con versión fija
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
 WORKDIR /app
 
@@ -20,8 +20,8 @@ FROM base AS deps
 
 COPY package.json pnpm-lock.yaml ./
 
-RUN --mount=type=cache,id=pnpm-front,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+# Instalar dependencias (sin cache mounts para compatibilidad CI/CD)
+RUN pnpm install --frozen-lockfile
 
 # ---- Etapa de build ----
 FROM base AS builder
