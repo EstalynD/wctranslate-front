@@ -70,6 +70,14 @@ export interface Course {
   lockReason?: string;
 }
 
+export interface ThemeWithLessons extends Theme {
+  lessons: BackendLesson[];
+}
+
+export interface CourseProgram extends Course {
+  themes: ThemeWithLessons[];
+}
+
 export interface Theme {
   _id: string;
   title: string;

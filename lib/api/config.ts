@@ -26,6 +26,7 @@ export const apiConfig = {
       my: "/courses/my",
       detail: (id: string) => `/courses/${id}`,
       bySlug: (slug: string) => `/courses/slug/${slug}`,
+      programBySlug: (slug: string) => `/courses/slug/${slug}/program`,
       withThemes: (id: string) => `/courses/${id}/with-themes`,
     },
     themes: {

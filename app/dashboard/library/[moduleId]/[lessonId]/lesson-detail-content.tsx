@@ -262,12 +262,11 @@ export function LessonDetailContent({ moduleId, lessonId }: LessonDetailContentP
     setState((prev) => ({ ...prev, isLoading: true, error: null }))
 
     try {
-      // 1. Obtener el curso por slug → luego con temas
-      let course: CourseWithThemes
+      // 1. OBTENER PROGRAMA COMPLETO (Curso + Temas + Lecciones) en 1 sola llamada optimizada
+      let program: CourseWithThemes // Usamos CourseWithThemes aunque ahora incluye lecciones ("CourseProgram")
       try {
-        const baseCourse = await coursesService.getBySlug(moduleId)
-        if (signal?.aborted) return
-        course = await coursesService.getWithThemes(baseCourse._id)
+        // @ts-ignore - Type casting temporal mientras actualizamos intefaces completas
+        program = await coursesService.getProgramBySlug(moduleId)
         if (signal?.aborted) return
       } catch (err) {
         if (signal?.aborted) return
@@ -278,28 +277,30 @@ export function LessonDetailContent({ moduleId, lessonId }: LessonDetailContentP
         throw err
       }
 
-      // 2. Obtener en PARALELO: temas con lecciones + progreso + estado diario
-      const themes = course.themes as Theme[]
-
-      const [allThemesUnsorted, progressResponse, dailyStatus] = await Promise.all([
-        Promise.all(themes.map((t) => themesService.getWithLessons(t._id))),
-        progressService.getMyCourseProgress(course._id).catch(() => null),
+      // 2. Obtener en PARALELO: progreso + estado diario
+      // Usamos el ID del programa recien obtenido
+      const [progressResponse, dailyStatus] = await Promise.all([
+        progressService.getMyCourseProgress(program._id).catch(() => null),
         progressService.getMyDailyStatus().catch(() => ({ canCompleteMore: true })),
       ])
 
       if (signal?.aborted) return
 
-      // Ordenar temas por su campo order
-      const allThemes = allThemesUnsorted.sort(
+      // Temas ya vienen del endpoint maestro (ordenados y con lecciones)
+      // @ts-ignore
+      const allThemes = (program.themes as any[]).sort(
         (a, b) => (a.order ?? 0) - (b.order ?? 0)
       )
 
       // 3. Encontrar el tema actual (lessonId es realmente el themeId)
+      // @ts-ignore
       const currentTheme = allThemes.find((t) => t._id === lessonId)
       if (!currentTheme) {
         router.replace(`/dashboard/library/${moduleId}`)
         return
       }
+
+      const course = program
 
       // 4. Parsear progreso
       let courseProgress: CourseProgressData | null = null

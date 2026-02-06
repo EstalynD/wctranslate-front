@@ -147,16 +147,15 @@ export function TaskDetailContent({ moduleId, lessonId, taskId }: TaskDetailCont
         throw err
       }
 
-      // 2. Obtener en PARALELO: tema con lecciones + lección individual + progreso + estado
+      // 2. Obtener en PARALELO: tema con lecciones + progreso + estado
       let themeData: ThemeWithLessons
       let lesson: BackendLesson
       let courseProgress: CourseProgressData | null = null
       let lessonStatus: LessonFullStatusResponse | null = null
 
       try {
-        const [themeResult, lessonResult, progressResult, statusResult] = await Promise.all([
+        const [themeResult, progressResult, statusResult] = await Promise.all([
           themesService.getWithLessons(lessonId),
-          lessonsService.getById(taskId),
           progressService.getMyCourseProgress(baseCourse._id).catch(() => null),
           progressService.getLessonFullStatus(taskId).catch(() => null),
         ])
@@ -164,8 +163,16 @@ export function TaskDetailContent({ moduleId, lessonId, taskId }: TaskDetailCont
         if (signal?.aborted) return
 
         themeData = themeResult
-        lesson = lessonResult
         lessonStatus = statusResult
+
+        // Extraer lección del tema (evita llamada redundante a getById)
+        const foundLesson = (themeData.lessons as BackendLesson[]).find(l => l._id === taskId)
+        if (!foundLesson) {
+             // Fallback si no está en el array (raro)
+             lesson = await lessonsService.getById(taskId)
+        } else {
+             lesson = foundLesson
+        }
 
         // Parsear progreso
         const raw = progressResult as unknown as Record<string, unknown> | null

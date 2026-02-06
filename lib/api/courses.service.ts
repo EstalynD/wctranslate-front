@@ -5,6 +5,7 @@ import type {
   CoursesResponse,
   CoursesQueryParams,
   Theme,
+  CourseProgram,
 } from "../types/course.types";
 import { CourseStatus } from "../types/course.types";
 
@@ -63,6 +64,15 @@ export const coursesService = {
    */
   async getBySlug(slug: string): Promise<Course> {
     return httpClient.get<Course>(apiConfig.endpoints.courses.bySlug(slug));
+  },
+
+  /**
+   * Obtener programa completo del curso por slug (Curso -> Temas -> Lecciones)
+   */
+  async getProgramBySlug(slug: string): Promise<CourseProgram> {
+    return httpClient.get<CourseProgram>(
+      apiConfig.endpoints.courses.programBySlug(slug)
+    );
   },
 
   /**

@@ -325,12 +325,10 @@ export function ModuleDetailContent({ moduleId }: ModuleDetailContentProps) {
     setState((prev) => ({ ...prev, isLoading: true, error: null }))
 
     try {
-      // 1. Obtener curso por slug → luego con temas
-      let course: CourseWithThemes
+      // 1. Obtener curso PROGRAMA COMPLETO por slug (1 sola llamada maestra optimizada)
+      let program: any // Usamos any temporalmente para facilitar asignacion de tipos complejos
       try {
-        const baseCourse = await coursesService.getBySlug(moduleId)
-        if (signal?.aborted) return
-        course = await coursesService.getWithThemes(baseCourse._id)
+        program = await coursesService.getProgramBySlug(moduleId)
         if (signal?.aborted) return
       } catch (err) {
         if (signal?.aborted) return
@@ -341,21 +339,21 @@ export function ModuleDetailContent({ moduleId }: ModuleDetailContentProps) {
         throw err
       }
 
-      // 2. Obtener en PARALELO: temas con lecciones + progreso + sugerencia
-      const themes = course.themes as import("@/lib/types/course.types").Theme[]
-
-      const [themesWithLessonsUnsorted, progressResponse, allCoursesResponse] = await Promise.all([
-        Promise.all(themes.map((theme) => themesService.getWithLessons(theme._id))),
-        progressService.getMyCourseProgress(course._id).catch(() => null),
+      // 2. Obtener en PARALELO: progreso + sugerencia (usando ID del programa)
+      const [progressResponse, allCoursesResponse] = await Promise.all([
+        progressService.getMyCourseProgress(program._id).catch(() => null),
         coursesService.getPublished({ limit: 5 }).catch(() => ({ courses: [] })),
       ])
 
       if (signal?.aborted) return
 
-      // Ordenar temas por su campo order
-      const themesWithLessons = themesWithLessonsUnsorted.sort(
+      // Temas vienen listos y ordenados del backend
+      const themesWithLessons = (program.themes as any[]).sort(
         (a, b) => (a.order ?? 0) - (b.order ?? 0)
       )
+
+      // El objeto course que guardamos en estado
+      const course = program
 
       // Parsear progreso
       let courseProgress: CourseProgressData | null = null
