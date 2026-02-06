@@ -46,6 +46,7 @@ export interface ProgressUpdateResponse {
   unlockedContent?: {
     nextLesson?: string;
     nextTheme?: string;
+    nextCourse?: string;
   };
 }
 
@@ -168,6 +169,20 @@ export const progressService = {
   async getLessonAccess(lessonId: string): Promise<LessonAccessResponse> {
     return httpClient.get<LessonAccessResponse>(
       apiConfig.endpoints.progress.lessonAccess(lessonId)
+    );
+  },
+
+  /**
+   * Verificar acceso a múltiples lecciones en batch (optimizado)
+   * Evita N+1 queries al verificar acceso de todas las lecciones de un tema
+   */
+  async getLessonsAccessBatch(
+    lessonIds: string[]
+  ): Promise<Record<string, LessonAccessResponse>> {
+    if (lessonIds.length === 0) return {};
+    return httpClient.post<Record<string, LessonAccessResponse>>(
+      apiConfig.endpoints.progress.lessonsAccessBatch,
+      { lessonIds }
     );
   },
 

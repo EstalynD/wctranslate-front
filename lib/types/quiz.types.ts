@@ -188,6 +188,7 @@ export interface CanStartResponse {
   attemptsUsed: number;
   maxAttempts: number;
   cooldownEndsAt?: string;
+  inProgressAttemptId?: string;
 }
 
 export interface StartAttemptResponse {

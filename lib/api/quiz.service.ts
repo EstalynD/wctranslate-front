@@ -77,6 +77,16 @@ class QuizService {
   }
 
   /**
+   * Obtener detalle de un intento
+   */
+  async getAttemptDetail(attemptId: string) {
+    const response = await httpClient.get<ApiResponse<Record<string, unknown>>>(
+      apiConfig.endpoints.quiz.attemptDetail(attemptId)
+    );
+    return response.data;
+  }
+
+  /**
    * Abandonar intento
    */
   async abandonAttempt(attemptId: string): Promise<void> {

@@ -96,6 +96,12 @@ export function QuizModal({ isOpen, onClose, quizId, quizType, onComplete }: Qui
       const canStart = await quizService.canStartAttempt(quizId)
 
       if (!canStart.canStart) {
+        // Si hay un intento en progreso, reanudarlo automáticamente
+        if (canStart.inProgressAttemptId) {
+          await resumeAttempt(canStart.inProgressAttemptId)
+          return
+        }
+
         setError(canStart.reason || "No puedes iniciar este quiz en este momento")
         setState("error")
         return
@@ -108,6 +114,65 @@ export function QuizModal({ isOpen, onClose, quizId, quizType, onComplete }: Qui
     } catch (err) {
       console.error("Error cargando quiz:", err)
       setError("No se pudo cargar el quiz. Intenta de nuevo.")
+      setState("error")
+    }
+  }
+
+  // Reanudar un intento en progreso
+  const resumeAttempt = async (attemptId: string) => {
+    try {
+      setState("loading")
+
+      // Obtener datos del intento y el quiz en paralelo
+      const [attemptRaw, quizData] = await Promise.all([
+        quizService.getAttemptDetail(attemptId),
+        quizService.getQuizForStudent(quizId),
+      ])
+
+      // Reconstruir attemptData con la misma forma que startAttempt
+      const attempt = attemptRaw as Record<string, unknown>
+      setAttemptData({
+        attemptId: String(attempt._id || attemptId),
+        quizId: String(attempt.quizId || quizId),
+        attemptNumber: Number(attempt.attemptNumber || 1),
+        startedAt: String(attempt.startedAt || new Date().toISOString()),
+        expiresAt: attempt.expiresAt ? String(attempt.expiresAt) : undefined,
+        questionOrder: (attempt.questionOrder as string[]) || quizData.questions.map(q => q.id),
+        quiz: quizData,
+      })
+      setQuiz(quizData)
+
+      // Restaurar respuestas previas si existen
+      const savedAnswers = attempt.answers as Array<Record<string, unknown>> | undefined
+      if (savedAnswers && savedAnswers.length > 0) {
+        const restoredAnswers = new Map<string, UserAnswer>()
+        for (const ans of savedAnswers) {
+          restoredAnswers.set(String(ans.questionId), {
+            questionId: String(ans.questionId),
+            selectedOptionIds: (ans.selectedOptionIds as string[]) || [],
+            textAnswer: ans.textAnswer ? String(ans.textAnswer) : undefined,
+            startTime: Date.now(),
+          })
+        }
+        setAnswers(restoredAnswers)
+      }
+
+      // Configurar timer con el tiempo restante si hay límite
+      if (attempt.expiresAt) {
+        const remaining = Math.max(0, Math.round((new Date(String(attempt.expiresAt)).getTime() - Date.now()) / 1000))
+        if (remaining <= 0) {
+          setError("El tiempo para este intento ha expirado.")
+          setState("error")
+          return
+        }
+        setTimeRemaining(remaining)
+      }
+
+      setQuestionStartTime(Date.now())
+      setState("questions")
+    } catch (err) {
+      console.error("Error reanudando intento:", err)
+      setError("No se pudo reanudar el intento. Intenta de nuevo.")
       setState("error")
     }
   }

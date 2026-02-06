@@ -55,6 +55,7 @@ export const apiConfig = {
       completeLesson: (lessonId: string) => `/progress/lesson/${lessonId}/complete`,
       updateTime: (lessonId: string) => `/progress/lesson/${lessonId}/time`,
       lessonAccess: (lessonId: string) => `/progress/lesson/${lessonId}/access`,
+      lessonsAccessBatch: "/progress/lessons/access-batch",
       lessonFullStatus: (lessonId: string) => `/progress/lesson/${lessonId}/full-status`,
       lessonContentStatus: (lessonId: string) => `/progress/lesson/${lessonId}/content-status`,
       themeAccess: (themeId: string, courseId: string) =>
