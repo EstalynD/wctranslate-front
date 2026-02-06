@@ -10,6 +10,7 @@ import type {
   LessonContentStatusResponse,
   LessonFullStatusResponse,
   ThemeAccessResponse,
+  DashboardHomeResponse,
 } from "../types/course.types";
 
 /* ===== Types para respuestas de actualización ===== */
@@ -64,6 +65,13 @@ export interface StreakData {
 
 /* ===== Progress Service ===== */
 export const progressService = {
+  /**
+   * Obtener datos del dashboard home
+   */
+  async getMyDashboard(): Promise<DashboardHomeResponse> {
+    return httpClient.get<DashboardHomeResponse>(apiConfig.endpoints.progress.myDashboard);
+  },
+
   /**
    * Obtener todo el progreso del usuario autenticado
    */

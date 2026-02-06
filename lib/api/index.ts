@@ -8,6 +8,7 @@ export { coursesService } from "./courses.service";
 export { themesService } from "./themes.service";
 export { lessonsService } from "./lessons.service";
 export { progressService } from "./progress.service";
+export { quizService } from "./quiz.service";
 
 // Service types
 export type { CourseWithThemes } from "./courses.service";

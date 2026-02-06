@@ -1,92 +1,116 @@
-import type { Metadata } from "next"
+"use client"
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ExternalLink } from "lucide-react"
+import { ExternalLink, Clock, Loader2 } from "lucide-react"
 import {
   ProgressCard,
-  NextTaskCard,
-  AchievementsCard,
   ModuleCard,
+  // AchievementsCard, // Comentado temporalmente
 } from "@/components/dashboard/cards"
+import { progressService } from "@/lib/api"
+import type { DashboardHomeResponse, DashboardCourseItem } from "@/lib/types/course.types"
 
-export const metadata: Metadata = {
-  title: "Dashboard | WC Training",
-  description: "Tu panel de control personal. Revisa tu progreso y continúa tu formación.",
+// Mapeo de niveles del backend a español
+const levelMap: Record<string, "Básico" | "Intermedio" | "Avanzado"> = {
+  BASIC: "Básico",
+  INTERMEDIATE: "Intermedio",
+  ADVANCED: "Avanzado",
 }
-
-/* ===== Types ===== */
-interface Module {
-  id: string
-  title: string
-  level: "Básico" | "Intermedio" | "Avanzado"
-  progress: number
-  image?: string
-}
-
-/* ===== Mock Data (TODO: Replace with API) ===== */
-const modules: Module[] = [
-  {
-    id: "psicologia-audiencia",
-    title: "Psicología de la Audiencia",
-    level: "Avanzado",
-    progress: 80,
-    image: "/psi.png",
-  },
-  {
-    id: "manejo-redes",
-    title: "Manejo de Redes Sociales",
-    level: "Básico",
-    progress: 35,
-    image: "/ret.png",
-  },
-  {
-    id: "edicion-video",
-    title: "Edición de Video Express",
-    level: "Intermedio",
-    progress: 15,
-    image: "/confg.png",
-  },
-]
 
 /* ===== Hero Section Component ===== */
-function HeroSection({ userName = "Elena" }: { userName?: string }) {
+function HeroSection({ firstName, lastName }: { firstName: string; lastName: string }) {
+  const displayName = firstName || lastName || "Modelo"
   return (
     <section className="relative">
       <div className="flex flex-col gap-2">
         <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
-          ¡Hola, <span className="text-gradient">{userName}</span>!
+          ¡Hola, <span className="text-gradient">{displayName}</span>!
           <br />
           ¿Lista para brillar hoy?
         </h2>
         <p className="text-slate-400 text-lg max-w-xl">
-          Tienes <span className="text-white font-medium">2 nuevas tareas</span> y un logro a punto de desbloquearse. ¡Sigue así!
+          Revisa tu progreso y continúa con tu formación profesional.
         </p>
       </div>
     </section>
   )
 }
 
-/* ===== Dashboard Cards Grid ===== */
-function DashboardCards() {
+/* ===== Coming Soon Card ===== */
+function ComingSoonCard() {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+    <div className="bg-[var(--surface)] border border-white/5 p-8 rounded-[2.5rem] shadow-xl shadow-black/20 relative overflow-hidden">
+      {/* Background Icon */}
+      <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+        <Clock className="size-20" />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10">
+        <span className="inline-flex px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-widest mb-4 border border-amber-500/30">
+          Próximamente
+        </span>
+        <h3 className="text-2xl font-bold leading-tight mb-4">
+          Sistema de Tareas Diarias
+        </h3>
+        <p className="text-sm text-slate-400">
+          Pronto podrás ver tus tareas pendientes y recibir recomendaciones personalizadas para tu entrenamiento.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/* ===== Dashboard Cards Grid ===== */
+function DashboardCards({ stats }: { stats: DashboardHomeResponse["stats"] }) {
+  const message = stats.modulesRemaining > 0
+    ? `Estás a solo ${stats.modulesRemaining} módulos de completar el nivel profesional.`
+    : "¡Felicidades! Has completado todos los módulos disponibles."
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
       <ProgressCard
-        percentage={72}
-        message="Estás a solo 4 módulos de completar el nivel profesional."
+        percentage={stats.totalProgress}
+        message={message}
       />
-      <NextTaskCard
-        title="Optimización de Iluminación para Horas Doradas"
-        description="Aprende a configurar tus luces para maximizar el engagement nocturno."
-        href="/dashboard/tasks"
-      />
-      <AchievementsCard />
+      <ComingSoonCard />
+      {/* AchievementsCard comentado temporalmente */}
+      {/* <AchievementsCard /> */}
     </div>
   )
 }
 
 /* ===== Modules Section ===== */
-function ModulesSection({ modules }: { modules: Module[] }) {
+function ModulesSection({ courses }: { courses: DashboardCourseItem[] }) {
+  if (courses.length === 0) {
+    return (
+      <section id="modulos" className="scroll-mt-8">
+        <div className="flex items-center justify-between mb-8">
+          <h3 className="text-2xl font-black">Módulos en curso</h3>
+          <Link
+            href="/dashboard/library"
+            className="text-slate-400 hover:text-white transition-colors text-sm font-semibold flex items-center gap-2 group"
+          >
+            Explorar biblioteca
+            <ExternalLink className="size-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </Link>
+        </div>
+        <div className="bg-[var(--surface)] border border-white/5 rounded-3xl p-8 text-center">
+          <p className="text-slate-400 mb-4">No estás inscrita en ningún módulo aún.</p>
+          <Link
+            href="/dashboard/library"
+            className="inline-flex px-6 py-3 gradient-coral-violet rounded-xl text-white font-bold hover:opacity-90 transition-opacity"
+          >
+            Explorar módulos
+          </Link>
+        </div>
+      </section>
+    )
+  }
+
   return (
-    <section>
+    <section id="modulos" className="scroll-mt-8">
       <div className="flex items-center justify-between mb-8">
         <h3 className="text-2xl font-black">Módulos en curso</h3>
         <Link
@@ -99,15 +123,15 @@ function ModulesSection({ modules }: { modules: Module[] }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {modules.map((module) => (
+        {courses.map((course) => (
           <ModuleCard
-            key={module.id}
-            id={module.id}
-            title={module.title}
-            level={module.level}
-            progress={module.progress}
-            image={module.image}
-            href={`/dashboard/library/${module.id}`}
+            key={course.id}
+            id={course.id}
+            title={course.title}
+            level={levelMap[course.level] || "Básico"}
+            progress={course.progress}
+            image={course.thumbnail || undefined}
+            href={`/dashboard/library/${course.slug}`}
           />
         ))}
       </div>
@@ -115,16 +139,54 @@ function ModulesSection({ modules }: { modules: Module[] }) {
   )
 }
 
+/* ===== Loading State ===== */
+function LoadingState() {
+  return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <Loader2 className="size-8 animate-spin text-primary" />
+    </div>
+  )
+}
+
 /* ===== Main Page ===== */
 export default function DashboardHomePage() {
-  // TODO: Fetch user data from API
-  const userName = "Elena"
+  const [data, setData] = useState<DashboardHomeResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchDashboard() {
+      try {
+        const response = await progressService.getMyDashboard()
+        setData(response)
+      } catch (err) {
+        console.error("Error fetching dashboard:", err)
+        setError("Error al cargar el dashboard")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboard()
+  }, [])
+
+  if (loading) {
+    return <LoadingState />
+  }
+
+  if (error || !data) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-slate-400">{error || "No se pudieron cargar los datos"}</p>
+      </div>
+    )
+  }
 
   return (
     <>
-      <HeroSection userName={userName} />
-      <DashboardCards />
-      <ModulesSection modules={modules} />
+      <HeroSection firstName={data.user.firstName} lastName={data.user.lastName} />
+      <DashboardCards stats={data.stats} />
+      <ModulesSection courses={data.coursesInProgress} />
     </>
   )
 }

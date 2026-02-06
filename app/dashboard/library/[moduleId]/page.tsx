@@ -71,8 +71,9 @@ function getThemeUIStatus(
     return themeIndex === 0 ? "in-progress" : "locked"
   }
 
+  // Comparar como strings para evitar problemas con ObjectId
   const themeProgress = progressList.find(
-    (tp) => tp.themeId === themeId
+    (tp) => String(tp.themeId) === String(themeId)
   )
 
   if (!themeProgress) {
@@ -81,7 +82,7 @@ function getThemeUIStatus(
 
     const prevThemeId = themesWithLessons[themeIndex - 1]?._id
     const prevProgress = progressList.find(
-      (tp) => tp.themeId === prevThemeId
+      (tp) => String(tp.themeId) === String(prevThemeId)
     )
 
     return prevProgress?.status === ProgressStatus.COMPLETED
@@ -100,7 +101,7 @@ function getThemeUIStatus(
 
       const prevThemeId = themesWithLessons[themeIndex - 1]?._id
       const prevProgress = progressList.find(
-        (tp) => tp.themeId === prevThemeId
+        (tp) => String(tp.themeId) === String(prevThemeId)
       )
 
       const themeData = themesWithLessons[themeIndex]
@@ -125,8 +126,9 @@ function transformLessonsToTasks(
   themeProgress: ThemeProgressData | null
 ): LessonTask[] {
   return lessons.map((lesson, index) => {
+    // Comparar como strings para evitar problemas con ObjectId
     const lessonProgress = themeProgress?.lessonsProgress.find(
-      (lp) => lp.lessonId === lesson._id
+      (lp) => String(lp.lessonId) === String(lesson._id)
     )
 
     const isCompleted = lessonProgress?.status === ProgressStatus.COMPLETED
@@ -136,7 +138,7 @@ function transformLessonsToTasks(
     if (lesson.requiresPreviousCompletion && index > 0) {
       const prevLesson = lessons[index - 1]
       const prevProgress = themeProgress?.lessonsProgress.find(
-        (lp) => lp.lessonId === prevLesson._id
+        (lp) => String(lp.lessonId) === String(prevLesson._id)
       )
       isLocked = prevProgress?.status !== ProgressStatus.COMPLETED
     }
@@ -164,8 +166,9 @@ function transformToUILessons(
       themesWithLessons
     )
 
+    // Comparar como strings para evitar problemas con ObjectId
     const themeProgress = (courseProgress?.themesProgress ?? []).find(
-      (tp) => tp.themeId === theme._id
+      (tp) => String(tp.themeId) === String(theme._id)
     ) ?? null
 
     const lessons = Array.isArray(theme.lessons)

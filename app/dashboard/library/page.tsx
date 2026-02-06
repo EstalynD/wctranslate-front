@@ -4,28 +4,12 @@ import { useState, useMemo, useEffect, useCallback } from "react"
 import { BookOpen, AlertCircle, RefreshCw, GraduationCap } from "lucide-react"
 import {
   SearchBar,
-  CategoryFilters,
   LibraryModuleCard,
   CoursesGridSkeleton,
-  type CategoryFilterValue,
 } from "@/components/dashboard/library"
-import { coursesService } from "@/lib/api"
-import {
-  CourseCategory,
-  CourseStatus,
-  type Course,
-} from "@/lib/types/course.types"
-
-/* ===== Constants ===== */
-const categories: CategoryFilterValue[] = [
-  "ALL",
-  CourseCategory.MARKETING,
-  CourseCategory.TECHNICAL,
-  CourseCategory.PSYCHOLOGY,
-  CourseCategory.LEGAL,
-  CourseCategory.STYLING,
-  CourseCategory.COMMUNICATION,
-]
+import { coursesService, progressService } from "@/lib/api"
+import type { UserProgressData } from "@/lib/types/course.types"
+import type { Course } from "@/lib/types/course.types"
 
 /* ===== Hero Section ===== */
 function HeroSection({ totalCourses }: { totalCourses: number }) {
@@ -106,17 +90,32 @@ function StatsBar({ total, filtered }: { total: number; filtered: number }) {
 /* ===== Main Page ===== */
 export default function LibraryPage() {
   const [courses, setCourses] = useState<Course[]>([])
+  const [progressMap, setProgressMap] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [search, setSearch] = useState("")
-  const [activeCategory, setActiveCategory] = useState<CategoryFilterValue>("ALL")
 
   const fetchCourses = useCallback(async () => {
     setLoading(true)
     setError(false)
     try {
-      const response = await coursesService.getMyCourses()
-      setCourses(response.courses)
+      // Obtener cursos y progreso en paralelo
+      const [coursesResponse, userProgress] = await Promise.all([
+        coursesService.getMyCourses(),
+        progressService.getMyProgress().catch(() => null)
+      ])
+
+      setCourses(coursesResponse.courses)
+
+      // Crear mapa de progreso por courseId
+      if (userProgress?.courses) {
+        const map: Record<string, number> = {}
+        for (const cp of userProgress.courses) {
+          // Comparar como strings para evitar problemas con ObjectId
+          map[String(cp.courseId)] = cp.progressPercentage ?? 0
+        }
+        setProgressMap(map)
+      }
     } catch {
       setError(true)
     } finally {
@@ -128,22 +127,18 @@ export default function LibraryPage() {
     fetchCourses()
   }, [fetchCourses])
 
-  // Filtrado local por categoría y búsqueda
+  // Filtrado local por búsqueda
   const filteredCourses = useMemo(() => {
     return courses.filter((course) => {
-      const matchCategory =
-        activeCategory === "ALL" || course.category === activeCategory
-
-      const matchSearch =
+      return (
         !search ||
         course.title.toLowerCase().includes(search.toLowerCase()) ||
         course.description.toLowerCase().includes(search.toLowerCase())
-
-      return matchCategory && matchSearch
+      )
     })
-  }, [courses, search, activeCategory])
+  }, [courses, search])
 
-  const hasFilters = activeCategory !== "ALL" || search.length > 0
+  const hasFilters = search.length > 0
 
   return (
     <div className="space-y-8">
@@ -160,16 +155,12 @@ export default function LibraryPage() {
         </div>
       </section>
 
-      {/* Filtros por categoría */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <CategoryFilters
-          categories={categories}
-          activeCategory={activeCategory}
-          onCategoryChange={setActiveCategory}
-          showFiltersButton={false}
-        />
-        {!loading && <StatsBar total={courses.length} filtered={filteredCourses.length} />}
-      </div>
+      {/* Stats */}
+      {!loading && (
+        <div className="flex items-center justify-end">
+          <StatsBar total={courses.length} filtered={filteredCourses.length} />
+        </div>
+      )}
 
       {/* Grid de módulos */}
       {loading ? (
@@ -182,7 +173,11 @@ export default function LibraryPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
           {filteredCourses.length > 0 ? (
             filteredCourses.map((course) => (
-              <LibraryModuleCard key={course._id} course={course} />
+              <LibraryModuleCard
+                key={course._id}
+                course={course}
+                progress={progressMap[String(course._id)] ?? 0}
+              />
             ))
           ) : (
             <EmptyState hasFilters={hasFilters} />

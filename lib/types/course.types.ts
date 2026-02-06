@@ -65,6 +65,9 @@ export interface Course {
   platformId: string | null;
   createdAt: string;
   updatedAt: string;
+  // Estado de bloqueo (para modelos generales)
+  isLocked?: boolean;
+  lockReason?: string;
 }
 
 export interface Theme {
@@ -298,3 +301,46 @@ export const lessonTypeLabels: Record<LessonType, string> = {
   [LessonType.READING]: "Lectura",
   [LessonType.DOWNLOAD]: "Descarga",
 };
+
+// --- Dashboard Types ---
+export interface DashboardCourseItem {
+  id: string;
+  title: string;
+  slug: string;
+  level: string;
+  thumbnail: string | null;
+  progress: number;
+  status: string;
+  lastAccessedAt: string | null;
+}
+
+export interface DashboardNextTask {
+  lessonId: string;
+  lessonTitle: string;
+  lessonSlug: string;
+  lessonDescription: string;
+  themeId: string;
+  themeName: string;
+  courseId: string;
+  courseName: string;
+}
+
+export interface DashboardHomeResponse {
+  user: {
+    firstName: string;
+    lastName: string;
+    nickName?: string;
+    avatarUrl?: string;
+  };
+  stats: {
+    totalProgress: number;
+    coursesEnrolled: number;
+    coursesCompleted: number;
+    lessonsCompleted: number;
+    currentStreak: number;
+    pendingTasks: number;
+    modulesRemaining: number;
+  };
+  coursesInProgress: DashboardCourseItem[];
+  nextTask: DashboardNextTask | null;
+}

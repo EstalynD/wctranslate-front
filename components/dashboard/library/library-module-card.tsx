@@ -2,13 +2,12 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { Play, ArrowRight, Brain, Clock, BookOpen, Users } from "lucide-react"
+import { Play, ArrowRight, Brain, Clock, BookOpen, Users, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Course } from "@/lib/types/course.types"
 import {
   CourseCategory,
   CourseLevel,
-  categoryLabels,
   levelLabels,
 } from "@/lib/types/course.types"
 
@@ -18,17 +17,6 @@ interface LibraryModuleCardProps {
   /** Progreso del usuario 0-100 (se obtendrá de la API de progreso) */
   progress?: number
   className?: string
-}
-
-/* ===== Category Color Mapping ===== */
-const categoryColors: Record<CourseCategory, string> = {
-  [CourseCategory.TECHNICAL]: "text-primary",
-  [CourseCategory.MARKETING]: "text-violet-400",
-  [CourseCategory.PSYCHOLOGY]: "text-emerald-400",
-  [CourseCategory.LEGAL]: "text-amber-400",
-  [CourseCategory.STYLING]: "text-pink-400",
-  [CourseCategory.COMMUNICATION]: "text-sky-400",
-  [CourseCategory.GENERAL]: "text-slate-300",
 }
 
 /* ===== Level Styles ===== */
@@ -61,11 +49,15 @@ function formatDuration(minutes: number): string {
 export function LibraryModuleCard({ course, progress = 0, className }: LibraryModuleCardProps) {
   const hasProgress = progress > 0
   const isCompleted = progress === 100
+  const isLocked = course.isLocked ?? false
 
   return (
     <div
       className={cn(
-        "group bg-[var(--surface)] border border-white/5 rounded-[2rem] overflow-hidden flex flex-col shadow-xl shadow-black/20 hover:border-white/20 transition-all",
+        "group bg-[var(--surface)] border border-white/5 rounded-[2rem] overflow-hidden flex flex-col shadow-xl shadow-black/20 transition-all",
+        isLocked
+          ? "opacity-60 cursor-not-allowed"
+          : "hover:border-white/20",
         className
       )}
     >
@@ -91,26 +83,30 @@ export function LibraryModuleCard({ course, progress = 0, className }: LibraryMo
         {/* Gradiente overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--surface)] via-transparent to-transparent" />
 
-        {/* Badge categoría */}
-        <div className="absolute top-4 left-4">
-          <span
-            className={cn(
-              "px-3 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wider",
-              categoryColors[course.category]
-            )}
-          >
-            {categoryLabels[course.category]}
-          </span>
-        </div>
+        {/* Overlay de bloqueado */}
+        {isLocked && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <div className="size-16 rounded-full bg-slate-800/80 backdrop-blur-sm flex items-center justify-center border border-white/10">
+              <Lock className="size-8 text-slate-400" />
+            </div>
+          </div>
+        )}
 
-        {/* Badge completado */}
-        {isCompleted && (
+        {/* Badge completado o bloqueado */}
+        {isLocked ? (
+          <div className="absolute top-4 right-4">
+            <span className="px-3 py-1 bg-slate-700/90 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <Lock className="size-3" />
+              Bloqueado
+            </span>
+          </div>
+        ) : isCompleted ? (
           <div className="absolute top-4 right-4">
             <span className="px-3 py-1 bg-emerald-500/80 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wider text-white">
               Completado
             </span>
           </div>
-        )}
+        ) : null}
 
         {/* Badge nivel */}
         <div className="absolute bottom-4 right-4">
@@ -180,22 +176,38 @@ export function LibraryModuleCard({ course, progress = 0, className }: LibraryMo
           </div>
 
           {/* Botón de acción */}
-          <Link
-            href={`/dashboard/library/${course.slug}`}
-            className={cn(
-              "w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all",
-              hasProgress
-                ? "gradient-coral-violet hover:opacity-90 shadow-lg shadow-primary/20 text-white"
-                : "bg-white/10 hover:bg-white/20 border border-white/10 text-white"
-            )}
-          >
-            <span>{isCompleted ? "Repasar" : hasProgress ? "Continuar" : "Comenzar"}</span>
-            {hasProgress ? (
-              <Play className="size-4 fill-current" />
-            ) : (
-              <ArrowRight className="size-4" />
-            )}
-          </Link>
+          {isLocked ? (
+            <div
+              className="w-full py-3.5 rounded-xl font-bold text-sm flex flex-col items-center justify-center gap-1 bg-slate-800/50 border border-white/5 text-slate-500 cursor-not-allowed"
+            >
+              <span className="flex items-center gap-2">
+                <Lock className="size-4" />
+                Bloqueado
+              </span>
+              {course.lockReason && (
+                <span className="text-[10px] font-normal text-slate-600">
+                  {course.lockReason}
+                </span>
+              )}
+            </div>
+          ) : (
+            <Link
+              href={`/dashboard/library/${course.slug}`}
+              className={cn(
+                "w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all",
+                hasProgress
+                  ? "gradient-coral-violet hover:opacity-90 shadow-lg shadow-primary/20 text-white"
+                  : "bg-white/10 hover:bg-white/20 border border-white/10 text-white"
+              )}
+            >
+              <span>{isCompleted ? "Repasar" : hasProgress ? "Continuar" : "Comenzar"}</span>
+              {hasProgress ? (
+                <Play className="size-4 fill-current" />
+              ) : (
+                <ArrowRight className="size-4" />
+              )}
+            </Link>
+          )}
         </div>
       </div>
     </div>

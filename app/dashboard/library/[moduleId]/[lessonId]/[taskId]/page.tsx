@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Clock, BookOpen, CheckCircle, Loader2, AlertCircle, RefreshCw, Download, FileText } from "lucide-react"
+import { ArrowLeft, Clock, BookOpen, CheckCircle, Loader2, AlertCircle, RefreshCw, Download, FileText, HelpCircle } from "lucide-react"
 import { ContentBlockRenderer, type ContentBlock as UIContentBlock } from "@/components/dashboard/lesson-detail"
 import { TaskCompletionModal } from "@/components/dashboard/lesson-detail/task-completion-modal"
+import { QuizModal } from "@/components/dashboard/quiz-modal"
 import type { ProgressUpdateResponse } from "@/lib/api/progress.service"
 import {
   coursesService,
@@ -117,6 +118,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
   const [actionError, setActionError] = useState<string | null>(null)
   const [completionResponse, setCompletionResponse] = useState<ProgressUpdateResponse | null>(null)
   const [showCompletionModal, setShowCompletionModal] = useState(false)
+  const [showQuizModal, setShowQuizModal] = useState(false)
 
   const fetchData = useCallback(async () => {
     setState({ isLoading: true, error: null })
@@ -171,7 +173,24 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
       // 5. Progreso del curso
       let courseProgress: CourseProgressData | null = null
       try {
-        courseProgress = await progressService.getMyCourseProgress(baseCourse._id)
+        const progressResponse = await progressService.getMyCourseProgress(baseCourse._id)
+
+        // Verificar formato de respuesta (puede ser { enrolled, progress } o CourseProgress directamente)
+        const raw = progressResponse as unknown as Record<string, unknown> | null
+
+        if (!raw || (typeof raw === "object" && Object.keys(raw).length === 0)) {
+          courseProgress = null
+        } else if ("enrolled" in raw) {
+          // Formato nuevo: { enrolled: boolean, progress: CourseProgress | null }
+          courseProgress = raw.enrolled
+            ? (raw.progress as CourseProgressData | null)
+            : null
+        } else if ("courseId" in raw) {
+          // Formato legacy: CourseProgress directamente
+          courseProgress = raw as unknown as CourseProgressData
+        } else {
+          courseProgress = null
+        }
       } catch (err) {
         if (!(err instanceof ApiError && err.status === 404)) {
           console.warn("Error obteniendo progreso:", err)
@@ -304,11 +323,16 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
     contentStatus?.postQuiz?.message
 
   // Progreso
+  // Comparar como strings para evitar problemas con ObjectId
   const themeProgress: ThemeProgressData | null =
-    (courseProgress?.themesProgress ?? []).find((tp) => tp.themeId === theme._id) ?? null
+    (courseProgress?.themesProgress ?? []).find(
+      (tp) => String(tp.themeId) === String(theme._id)
+    ) ?? null
 
   const lessonProgress: LessonProgressData | null =
-    (themeProgress?.lessonsProgress ?? []).find((lp) => lp.lessonId === lesson._id) ?? null
+    (themeProgress?.lessonsProgress ?? []).find(
+      (lp) => String(lp.lessonId) === String(lesson._id)
+    ) ?? null
 
   const isCompleted = lessonProgress?.status === ProgressStatus.COMPLETED
 
@@ -405,6 +429,16 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                   {dailyStatus.tasksCompletedToday}/{dailyStatus.maxDailyTasks} tareas hoy
                 </p>
               )}
+              {/* Botón para iniciar quiz de entrada */}
+              {contentStatus?.preQuiz?.required && contentStatus?.preQuiz?.quizId && !contentStatus?.preQuiz?.hasPassed && (
+                <button
+                  onClick={() => setShowQuizModal(true)}
+                  className="mt-3 flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-400 to-pink-500 text-white font-bold text-sm shadow-lg hover:shadow-orange-500/30 transition-all"
+                >
+                  <HelpCircle className="size-4" />
+                  Iniciar Quiz de Entrada
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -467,6 +501,21 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
         themeCompleted={completionResponse?.themeCompleted}
         courseCompleted={completionResponse?.courseCompleted}
       />
+
+      {/* Modal de Quiz */}
+      {contentStatus?.preQuiz?.quizId && (
+        <QuizModal
+          isOpen={showQuizModal}
+          onClose={() => setShowQuizModal(false)}
+          quizId={contentStatus.preQuiz.quizId}
+          quizType="pre"
+          onComplete={(passed) => {
+            setShowQuizModal(false)
+            // Refrescar datos para actualizar el estado del quiz
+            fetchData()
+          }}
+        />
+      )}
 
       {/* Footer - Navegación y Completar */}
       <footer className="sticky bottom-0 bg-[#0b0a1a]/95 backdrop-blur-lg border-t border-white/5 px-2 sm:px-4 py-3 md:px-6 md:py-4">

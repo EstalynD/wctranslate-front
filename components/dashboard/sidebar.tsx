@@ -20,6 +20,7 @@ interface NavItem {
   label: string
   icon: React.ElementType
   href: string
+  comingSoon?: boolean
 }
 
 interface SidebarProps {
@@ -31,11 +32,11 @@ interface SidebarProps {
 /* ===== Navigation Items ===== */
 const navItems: NavItem[] = [
   { label: "Inicio", icon: LayoutDashboard, href: "/dashboard/home" },
-  { label: "Mi Progreso", icon: TrendingUp, href: "/dashboard/progress" },
+  { label: "Mi Progreso", icon: TrendingUp, href: "/dashboard/progress", comingSoon: true },
   { label: "Módulos", icon: BookOpen, href: "/dashboard/library" },
-  { label: "Mis Tareas", icon: ClipboardCheck, href: "/dashboard/tasks" },
+  { label: "Mis Tareas", icon: ClipboardCheck, href: "/dashboard/tasks", comingSoon: true },
   { label: "Mi Perfil", icon: User, href: "/dashboard/profile" },
-  { label: "Comunidad", icon: MessageSquare, href: "/dashboard/community" },
+  { label: "Comunidad", icon: MessageSquare, href: "/dashboard/community", comingSoon: true },
 ]
 
 /* ===== Sidebar Component ===== */
@@ -82,8 +83,52 @@ export function Sidebar({ collapsed = false, isMobile = false, onClose }: Sideba
 
         {/* Navigation */}
         <nav className="flex flex-col gap-2">
-          {navItems.map(({ label, icon: Icon, href }) => {
+          {navItems.map(({ label, icon: Icon, href, comingSoon }) => {
             const isActive = pathname === href || pathname.startsWith(href + "/")
+
+            // Contenido común del item
+            const itemContent = (
+              <>
+                <Icon
+                  className={cn(
+                    "size-5 flex-shrink-0 transition-colors",
+                    comingSoon
+                      ? "text-slate-500"
+                      : isActive
+                        ? "text-primary"
+                        : "group-hover:text-primary"
+                  )}
+                />
+                {!collapsed && (
+                  <span className="text-sm flex-1">{label}</span>
+                )}
+                {!collapsed && comingSoon && (
+                  <span className="text-[10px] sm:text-[9px] md:text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-700/80 text-slate-400 whitespace-nowrap">
+                    Pronto
+                  </span>
+                )}
+                {collapsed && comingSoon && (
+                  <span className="absolute -top-1 -right-1 size-2 rounded-full bg-slate-500" />
+                )}
+              </>
+            )
+
+            // Si está próximamente, renderizar como div deshabilitado
+            if (comingSoon) {
+              return (
+                <div
+                  key={href}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl cursor-not-allowed opacity-60 relative",
+                    "text-slate-500",
+                    collapsed && "justify-center px-3"
+                  )}
+                  title="Próximamente"
+                >
+                  {itemContent}
+                </div>
+              )
+            }
 
             return (
               <Link
@@ -91,7 +136,7 @@ export function Sidebar({ collapsed = false, isMobile = false, onClose }: Sideba
                 href={href}
                 onClick={isMobile ? onClose : undefined}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all group",
+                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all group relative",
                   isActive
                     ? "bg-white/10 text-white font-semibold"
                     : "hover:bg-white/5 text-slate-400 hover:text-white",
@@ -99,13 +144,7 @@ export function Sidebar({ collapsed = false, isMobile = false, onClose }: Sideba
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
-                <Icon
-                  className={cn(
-                    "size-5 flex-shrink-0 transition-colors",
-                    isActive ? "text-primary" : "group-hover:text-primary"
-                  )}
-                />
-                {!collapsed && <span className="text-sm">{label}</span>}
+                {itemContent}
               </Link>
             )
           })}

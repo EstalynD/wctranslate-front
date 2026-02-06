@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+import { ArrowDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 /* ===== Types ===== */
@@ -45,7 +47,16 @@ export function ProgressCard({
       {/* Content */}
       <div className="mt-6">
         <h3 className="text-xl font-bold mb-1">Tu Progreso</h3>
-        <p className="text-sm text-slate-400">{message}</p>
+        <p className="text-sm text-slate-400 mb-4">{message}</p>
+
+        {/* CTA Button */}
+        <Link
+          href="#modulos"
+          className="inline-flex items-center gap-2 px-6 py-3 gradient-coral-violet text-white font-bold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 group"
+        >
+          <span>Continuar aprendiendo</span>
+          <ArrowDown className="size-4 group-hover:translate-y-0.5 transition-transform" />
+        </Link>
       </div>
     </div>
   )

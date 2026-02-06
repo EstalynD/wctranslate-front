@@ -26,6 +26,7 @@ import type {
   ThemeProgressData,
   CourseProgressData,
   LessonAccessResponse,
+  DailyStatusResponse,
 } from "@/lib/types/course.types"
 import {
   LessonType,
@@ -39,6 +40,7 @@ interface LessonPageState {
   allThemes: ThemeWithLessons[]
   courseProgress: CourseProgressData | null
   lessonAccessMap: Record<string, LessonAccessResponse>
+  dailyLimitReached: boolean
   isLoading: boolean
   error: string | null
 }
@@ -71,8 +73,9 @@ function getLessonTaskStatus(
     return lessonIndex === 0 ? "pending" : "locked"
   }
 
+  // Comparar como strings para evitar problemas con ObjectId
   const lessonProg = (themeProgress.lessonsProgress ?? []).find(
-    (lp) => lp.lessonId === lesson._id
+    (lp) => String(lp.lessonId) === String(lesson._id)
   )
 
   if (lessonProg?.status === ProgressStatus.COMPLETED) return "completed"
@@ -82,7 +85,7 @@ function getLessonTaskStatus(
   if (lesson.requiresPreviousCompletion && lessonIndex > 0) {
     const prevLesson = lessons[lessonIndex - 1]
     const prevProg = (themeProgress.lessonsProgress ?? []).find(
-      (lp) => lp.lessonId === prevLesson._id
+      (lp) => String(lp.lessonId) === String(prevLesson._id)
     )
     if (prevProg?.status !== ProgressStatus.COMPLETED) return "locked"
   }
@@ -256,6 +259,7 @@ export default function LessonDetailPage({ params }: LessonDetailPageProps) {
     allThemes: [],
     courseProgress: null,
     lessonAccessMap: {},
+    dailyLimitReached: false,
     isLoading: true,
     error: null,
   })
@@ -300,7 +304,24 @@ export default function LessonDetailPage({ params }: LessonDetailPageProps) {
       // 4. Obtener progreso del curso
       let courseProgress: CourseProgressData | null = null
       try {
-        courseProgress = await progressService.getMyCourseProgress(course._id)
+        const progressResponse = await progressService.getMyCourseProgress(course._id)
+
+        // Verificar formato de respuesta (puede ser { enrolled, progress } o CourseProgress directamente)
+        const raw = progressResponse as unknown as Record<string, unknown> | null
+
+        if (!raw || (typeof raw === "object" && Object.keys(raw).length === 0)) {
+          courseProgress = null
+        } else if ("enrolled" in raw) {
+          // Formato nuevo: { enrolled: boolean, progress: CourseProgress | null }
+          courseProgress = raw.enrolled
+            ? (raw.progress as CourseProgressData | null)
+            : null
+        } else if ("courseId" in raw) {
+          // Formato legacy: CourseProgress directamente
+          courseProgress = raw as unknown as CourseProgressData
+        } else {
+          courseProgress = null
+        }
       } catch (err) {
         if (!(err instanceof ApiError && err.status === 404)) {
           console.warn("Error obteniendo progreso:", err)
@@ -332,12 +353,31 @@ export default function LessonDetailPage({ params }: LessonDetailPageProps) {
         console.warn("Error obteniendo acceso a lecciones:", err)
       }
 
+      // 6. Obtener estado diario (límite de tareas)
+      let dailyLimitReached = false
+      try {
+        const dailyStatus = await progressService.getMyDailyStatus()
+        dailyLimitReached = !dailyStatus.canCompleteMore
+      } catch (err) {
+        console.warn("Error obteniendo estado diario:", err)
+      }
+
+      // Debug: verificar datos de progreso
+      console.log("[Debug] courseProgress:", courseProgress)
+      console.log("[Debug] themeId buscado:", currentTheme._id)
+      console.log("[Debug] themesProgress:", courseProgress?.themesProgress?.map(tp => ({
+        themeId: tp.themeId,
+        status: tp.status,
+        progressPercentage: tp.progressPercentage
+      })))
+
       setState({
         course,
         theme: currentTheme,
         allThemes,
         courseProgress,
         lessonAccessMap,
+        dailyLimitReached,
         isLoading: false,
         error: null,
       })
@@ -374,8 +414,9 @@ export default function LessonDetailPage({ params }: LessonDetailPageProps) {
   const { course, theme, allThemes, courseProgress, lessonAccessMap } = state
 
   // Obtener progreso del tema actual
+  // Comparar como strings para evitar problemas con ObjectId
   const themeProgress = (courseProgress?.themesProgress ?? []).find(
-    (tp) => tp.themeId === theme._id
+    (tp) => String(tp.themeId) === String(theme._id)
   ) ?? null
 
   // Índice del tema actual dentro del curso
@@ -386,6 +427,9 @@ export default function LessonDetailPage({ params }: LessonDetailPageProps) {
   const completedThemes = (courseProgress?.themesProgress ?? []).filter(
     (tp) => tp.status === ProgressStatus.COMPLETED
   ).length
+
+  // Debug: log de progreso para verificar datos
+  // console.log('themeProgress:', themeProgress, 'theme._id:', theme._id)
 
   // Progreso del tema
   const themePercent = themeProgress?.progressPercentage ?? 0
@@ -460,6 +504,7 @@ export default function LessonDetailPage({ params }: LessonDetailPageProps) {
         tasks={tasks}
         moduleId={course.slug}
         lessonId={theme._id}
+        dailyLimitReached={state.dailyLimitReached}
       />
 
       {/* Navegación */}

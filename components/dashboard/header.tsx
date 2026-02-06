@@ -53,7 +53,8 @@ export function Header({ onOpenMobile }: HeaderProps) {
   const displayName = user
     ? `${user.profile.firstName} ${user.profile.lastName}`
     : "Usuario"
-  const avatarUrl = user?.profile.avatarUrl || "/default-avatar.png"
+  const avatarUrl = user?.profile.avatarUrl || null
+  const userInitial = user?.profile.firstName?.charAt(0).toUpperCase() || "U"
   const planLabel = user
     ? planLabelMap[user.subscriptionAccess.planType] || user.subscriptionAccess.planType
     : ""
@@ -151,13 +152,19 @@ export function Header({ onOpenMobile }: HeaderProps) {
               </div>
             </div>
             <div className="size-11 rounded-full border-2 border-primary p-0.5 group-hover:border-primary/80 transition-colors">
-              <Image
-                src={avatarUrl}
-                alt={`Foto de perfil de ${displayName}`}
-                width={44}
-                height={44}
-                className="w-full h-full object-cover rounded-full"
-              />
+              {avatarUrl ? (
+                <Image
+                  src={avatarUrl}
+                  alt={`Foto de perfil de ${displayName}`}
+                  width={44}
+                  height={44}
+                  className="w-full h-full object-cover rounded-full"
+                />
+              ) : (
+                <div className="w-full h-full rounded-full bg-primary/20 flex items-center justify-center">
+                  <span className="text-primary font-bold text-lg">{userInitial}</span>
+                </div>
+              )}
             </div>
             <ChevronDown
               className={cn(

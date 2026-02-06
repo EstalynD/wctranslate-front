@@ -44,6 +44,7 @@ export const apiConfig = {
     },
     progress: {
       my: "/progress/my",
+      myDashboard: "/progress/my/dashboard",
       myCourse: (courseId: string) => `/progress/my/course/${courseId}`,
       myLesson: (lessonId: string) => `/progress/my/lesson/${lessonId}`,
       myStats: "/progress/my/stats",
@@ -72,6 +73,17 @@ export const apiConfig = {
     gamification: {
       stats: "/gamification/stats",
       leaderboard: "/gamification/leaderboard",
+    },
+    quiz: {
+      getForStudent: (quizId: string) => `/quiz/${quizId}/student`,
+      canStart: (quizId: string) => `/quiz/${quizId}/can-start`,
+      byLesson: (lessonId: string) => `/quiz/lesson/${lessonId}`,
+      startAttempt: "/quiz/attempts/start",
+      submitAttempt: (attemptId: string) => `/quiz/attempts/${attemptId}/submit`,
+      saveProgress: (attemptId: string) => `/quiz/attempts/${attemptId}/progress`,
+      abandonAttempt: (attemptId: string) => `/quiz/attempts/${attemptId}/abandon`,
+      myAttempts: "/quiz/attempts/me",
+      attemptDetail: (attemptId: string) => `/quiz/attempts/${attemptId}`,
     },
   },
   defaultHeaders: {
